@@ -1,5 +1,7 @@
 import csv
 import datetime
+from model.hashchain import HashChain
+from model.package import Package
 
 #used to load distance matrix and time matrix.  Imported from my c950 project.
 
@@ -32,3 +34,25 @@ def get_matrices():
     d_matrix = load_distances()
     t_matrix = get_time_matrix(d_matrix, 18)
     return d_matrix, t_matrix
+
+def load_packages():
+    # Load packages
+    packages = HashChain()
+    with open("./data/packages.csv", 'r') as myFile:
+        items = list(csv.reader(myFile))
+        for item in items:
+            # Create package object
+            pkg = Package(
+                int(item[0]),  # package id
+                item[1],  # address
+                item[2],  # city
+                item[3],  # zip
+                item[4],  # time_due
+                item[5],  # weight
+                item[6],  # note
+                item[7],  # TimeAvailable
+                item[8])  # truck restrictions
+            # item = Package(0,1,2,3,4,5,6,7,8)
+            # Insert into hash chain in accordance with ta
+            packages.insert(int(item[0]), pkg)
+        return packages
