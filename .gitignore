@@ -182,3 +182,10 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+/bin/
+/lib64/
+/lib64/
+/etc/
+/include/
+/share/
+/pyvenv.cfg
