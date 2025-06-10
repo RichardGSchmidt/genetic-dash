@@ -1,28 +1,28 @@
-loc_id,location,address
-0,Western Governors University,4001 South 700 East
-1,International Peace Gardens,1060 Dalton Ave S
-2,Sugar House Park,1330 2100 S
-3,Taylorsville-Bennion Heritage City Gov Off,1488 4800 S
-4,Salt Lake City Division of Health Services,177 W Price Ave
-5,South Salt Lake Public Works,195 W Oakland Ave
-6,Salt Lake City Streets and Sanitation,2010 W 500 S
-7,Deker Lake,2300 Parkway Blvd
-8,Salt Lake City Ottinger Hall,233 Canyon Rd
-9,Columbus Library,2530 S 500 E
-10,Taylorsville City Hall,2600 Taylorsville Blvd
-11,South Salt Lake Police,2835 Main St
-12,Council Hall,300 State St
-13,Redwood Park,3060 Lester St
-14,Salt Lake County Mental Health,3148 S 1100 W
-15,Salt Lake County United Police Dept,3365 S 900 W
-16,West Valley Prosecutor,3575 W Valley Central Station bus Loop
-17,Housing Auth. of Salt Lake County,3595 Main St
-18,Utah DMV Administrative Office,380 W 2880 S
-19,Third District Juvenile Court,410 S State St
-20,Cottonwood Regional Softball Complex,4300 S 1300 E
-21,Holiday City Office,4580 S 2300 E
-22,Murray City Museum,5025 State St
-23,Valley Regional Softball Complex,5100 South 2700 West
-24,City Center of Rock Springs,5383 South 900 East #104
-25,Rice Terrace Pavilion Park,600 E 900 South
-26,Wheeler Historic Farm,6351 South 900 East
+loc_id,location,address,latitude,longitude
+0,Western Governors University,4001 South 700 East,40.683954,-111.870012
+1,International Peace Gardens,1060 Dalton Ave S,40.747028,-111.919228
+2,Sugar House Park,1330 2100 S,40.724960,-111.853445
+3,Taylorsville-Bennion Heritage City Gov Off,1488 4800 S,40.6642654,-111.9333074
+4,Salt Lake City Division of Health Services,177 W Price Ave,40.6918128,-111.8967961
+5,South Salt Lake Public Works,195 W Oakland Ave,40.7161048,-111.8967756
+6,Salt Lake City Streets and Sanitation,2010 W 500 S,40.7588197,-111.9495115
+7,Deker Lake,2300 Parkway Blvd,40.710347,-111.9516433
+8,Salt Lake City Ottinger Hall,233 Canyon Rd,40.774457,-111.8856319
+9,Columbus Library,2530 S 500 E,40.715358,-111.8782923
+10,Taylorsville City Hall,2600 Taylorsville Blvd,40.654389,-111.9556085
+11,South Salt Lake Police,2835 Main St,40.7094308,-111.8909632
+12,Council Hall,300 State St,40.7754648,-111.8881877
+13,Redwood Park,3060 Lester St,40.7029908,-111.9404681
+14,Salt Lake County Mental Health,3148 S 1100 W,40.7029618,-111.9266002
+15,Salt Lake County United Police Dept,3365 S 900 W,40.6986451,-111.9167316
+16,West Valley Prosecutor,3575 W Valley Central Station bus Loop,40.6945967,-111.9591485
+17,Housing Auth. of Salt Lake County,3595 Main St,40.6930649,-111.890522
+18,Utah DMV Administrative Office,380 W 2880 S,40.70896953999483,-111.90189910397113
+19,Third District Juvenile Court,410 S State St,40.76016261999447,-111.8887383234658
+20,Cottonwood Regional Softball Complex,4300 S 1300 E,40.66910660373675,-111.84747491705552
+21,Holiday City Office,4580 S 2300 E,40.67161740660496,-111.82495154440103
+22,Murray City Museum,5025 State St,40.66203556598469,-111.88748446360341
+23,Valley Regional Softball Complex,5100 South 2700 West,40.6587463553008,-111.95984523271322
+24,City Center of Rock Springs,5383 South 900 East #104,40.653965940232595,-111.86519485620327
+25,Rice Terrace Pavilion Park,600 E 900 South,40.74909015657547,-111.87394309844188
+26,Wheeler Historic Farm,6351 South 900 East,40.635169073781256,-111.86401326645625
