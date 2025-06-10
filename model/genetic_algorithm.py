@@ -176,7 +176,7 @@ def mutation(offspring, mutation_rate):
     return mutated_offspring
 
 # Genetic algorithm
-def genetic_algorithm(trucks, packages, matrices, pop_size=50, generations=100, crossover_rate=0.9, mutation_rate=0.2):
+def genetic_algorithm(truck_count, truck_capacity, truck_speed, packages, matrices, pop_size=50, generations=100, crossover_rate=0.9, mutation_rate=0.2):
     # Create initial population
     population = create_initial_population(pop_size, trucks)
     

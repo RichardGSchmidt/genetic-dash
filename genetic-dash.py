@@ -1,7 +1,7 @@
 from dash import Dash, html, dash_table, dcc, callback, Output, Input
 import plotly.express as px
 import plotly.graph_objects as go
-from gen_utils import get_matrices
+from gen_utils import get_matrices, load_packages
 import networkx as nx
 import pandas as pd
 
@@ -9,6 +9,7 @@ import pandas as pd
 best_solutions = pd.read_csv('./data/best_solutions.csv')
 d_matrix, t_matrix = matrices = get_matrices()
 addresses = pd.read_csv('./data/addresses.csv')
+packages = load_packages()
 
 
 # Incorporate CSS
@@ -142,14 +143,45 @@ def plot_map(G, addresses_df):
 # Create the network graph from distance matrix
 G = create_graph(d_matrix)
 
-app.layout = [
+app.layout = html.Div([
     html.Div(className='row', children='Genetic-Dash',style={'textAlign':'center','fontSize':30}),
+
+    html.Div([
+        html.Label('No. of Trucks (1-50)'),
+        dcc.Input(id='num-trucks',type='number',min=1,max=50,step=1,value=3),
+
+        html.Label("Truck Capacity"),
+        dcc.Input(id='truck-capacity',type='number',min=1,max=100,step=1,value=14),
+
+        html.Label("Truck Speed"),
+        dcc.Input(id='truck-speed',type='number',min=5.0,max=100.0,step=0.1,value=18.0),
+
+        html.Br(),
+        html.Label('Population Size'),
+        dcc.Input(id='population-size',type='number',min=10,max=8000,step=10,value=5000),
+
+        html.Label('Generations'),
+        dcc.Input(id='generations',type='number',min=1,max=2000,step=1,value=32),
+
+        html.Label('Crossover Rate'),
+        dcc.Input(id='crossover-rate',type='number',min=0.0,max=1,step=0.05,value=0.9),
+
+        html.Label('Mutation Rate'),
+        dcc.Input(id='mutation-rate',type='number',min=0.0,max=1,step=0.01,value=0.02),
+
+
+
+        html.Br(),
+        html.Button('Run Genetics', id='run-genetics', n_clicks=0),
+        html.Div(id='output-summary')
+    ], style={'padding':'20px', 'border':'1px solid black', 'margin':'10px'}),
+
     html.Div(className='row', children='Map', style={'textAlign':'center','fontSize':30}),
     dcc.Graph(id='network-graph'),
     html.Div(className='row', children='Cost Per Best Solution', style={'textAlign':'center'}),
     dcc.Graph(id='graph-content'),
     dcc.Graph(id='generation-track')
-]
+])
 
 @callback(
     Output('network-graph', 'figure'),
