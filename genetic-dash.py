@@ -7,6 +7,9 @@ import pandas as pd
 
 #Import Data
 best_solutions = pd.read_csv('./data/best_solutions.csv')
+d_matrix, t_matrix = matrices = get_matrices()
+addresses = pd.read_csv('./data/addresses.csv')
+
 
 # Incorporate CSS
 stylesheets = ['./dashstyles.css']
@@ -19,13 +22,124 @@ best_solutions['mileage_cost'] = best_solutions['mileage']
 best_solutions['trucks_cost'] = best_solutions['trucks_used'] * 200
 best_solutions['total_cost'] = best_solutions['trucks_cost'] + best_solutions['late_cost'] + best_solutions['mileage_cost']
 
+
+#creates a network graph from a distance matrix
+def create_graph(distance_matrix):
+    G = nx.Graph()
+    n = len(distance_matrix)
+
+    # Add Nodes
+    for i in range(n):
+        G.add_node(i, label=f"Location {i}")
+
+    # Add Edges
+    for i in range(n):
+        for j in range(i+1, n):
+            weight = distance_matrix[i][j]
+            G.add_edge(i, j, weight=weight)
+    return G
+
+def plot_graph(G, pos=None, addresses_df=None):
+    if pos is None:
+        pos = nx.spring_layout(G,k=1,iterations=50)
+
+    #edge tracing lists
+    edge_x = []
+    edge_y = []
+    edge_weights = []
+    edge_text = []
+
+    for edge in G.edges():
+        x0,y0 = pos[edge[0]]
+        x1,y1 = pos[edge[1]]
+        edge_x.extend([x0,x1,None])
+        edge_y.extend([y0,y1,None])
+        weight = G[edge[0]][edge[1]]['weight']
+        edge_weights.append(weight)
+        edge_text.append(f'{weight:.1f}')
+
+    edge_trace = go.Scatter(
+        x=edge_x,
+        y=edge_y,
+        line=dict(width=0.5, color='#888'),
+        hoverinfo='none',
+        mode='lines'
+    )
+
+    #Nodes tracing lists
+    node_x = []
+    node_y = []
+    node_text = []
+    node_info = []
+
+    for node in G.nodes():
+        x, y = pos[node]
+        node_x.append(x)
+        node_y.append(y)
+
+        # Get address info if available
+        if addresses_df is not None and node < len(addresses_df):
+            location_name = addresses_df.iloc[node]['location']
+            address = addresses_df.iloc[node]['address']
+            node_info.append(f"Location {node}<br>{location_name}<br>{address}")
+        else:
+            node_info.append(f"Location {node}")
+
+
+    node_trace = go.Scatter(
+        x=node_x,
+        y=node_y,
+        mode='markers+text',
+        hoverinfo='text',
+        hovertext=node_info,
+        text=[str(i) for i in range(len(node_x))],
+        textposition="middle center",
+        marker=dict(
+            color ='grey',
+            size = 15,
+            line=dict(width=2)
+            )
+    )
+
+    # Create the figure
+    fig = go.Figure(data=[edge_trace, node_trace],
+                    layout=go.Layout(
+                        title='Map',
+                        font=dict(size=16),
+                        showlegend=False,
+                        hovermode='closest',
+                        margin=dict(b=20, l=5, r=5, t=40),
+                        annotations=[dict(
+                            text="Network showing distances between delivery locations.",
+                            showarrow=False,
+                            xref="paper", yref="paper",
+                            x=0.005, y=-0.002,
+                            xanchor='left', yanchor='bottom',
+                            font=dict(size=12)
+                        )],
+                        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
+                    )
+    return fig
+
+# Create the network graph from distance matrix
+G = create_graph(d_matrix)
+
 app.layout = [
     html.Div(className='row', children='Genetic-Dash',style={'textAlign':'center','fontSize':30}),
     html.Div(className='row', children='Map', style={'textAlign':'center','fontSize':30}),
+    dcc.Graph(id='network-graph'),
     html.Div(className='row', children='Cost Per Best Solution', style={'textAlign':'center'}),
     dcc.Graph(id='graph-content'),
     dcc.Graph(id='generation-track')
 ]
+
+@callback(
+    Output('network-graph', 'figure'),
+    Input('network-graph', 'id'),
+)
+def update_network_graph(value):
+    return plot_graph(G, addresses_df=addresses)
 
 @callback(
     Output('graph-content', 'figure'),
