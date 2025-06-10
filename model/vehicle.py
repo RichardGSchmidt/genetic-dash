@@ -1,7 +1,3 @@
-#Name: Richard Schmidt, Student_ID: ID:010869529
-#C950 Data Structures and Algorithms II
-#NHP3 — NHP3 Task 2: WGUPS Routing Program Implementation
-
 class Vehicle:
     def __init__(self, capacity, speed, load, packages, mileage, address, departure_time):
         self.capacity = capacity
