@@ -39,15 +39,17 @@ def create_graph(distance_matrix):
             G.add_edge(i, j, weight=weight)
     return G
 
-def plot_graph(G, pos=None, addresses_df=None):
-    if pos is None:
-        pos = nx.spring_layout(G,k=1,iterations=50)
+def plot_map(G, addresses_df):
+    pos = {}
+    for i in range(len(addresses_df)):
+        lat = addresses_df.iloc[i]['latitude']
+        lon = addresses_df.iloc[i]['longitude']
+        pos[i] = (lon, lat)
 
     #edge tracing lists
     edge_x = []
     edge_y = []
     edge_weights = []
-    edge_text = []
 
     for edge in G.edges():
         x0,y0 = pos[edge[0]]
@@ -56,14 +58,14 @@ def plot_graph(G, pos=None, addresses_df=None):
         edge_y.extend([y0,y1,None])
         weight = G[edge[0]][edge[1]]['weight']
         edge_weights.append(weight)
-        edge_text.append(f'{weight:.1f}')
 
     edge_trace = go.Scatter(
         x=edge_x,
         y=edge_y,
         line=dict(width=0.5, color='#888'),
         hoverinfo='none',
-        mode='lines'
+        mode='lines',
+        name='Routes'
     )
 
     #Nodes tracing lists
@@ -78,12 +80,10 @@ def plot_graph(G, pos=None, addresses_df=None):
         node_y.append(y)
 
         # Get address info if available
-        if addresses_df is not None and node < len(addresses_df):
-            location_name = addresses_df.iloc[node]['location']
-            address = addresses_df.iloc[node]['address']
-            node_info.append(f"Location {node}<br>{location_name}<br>{address}")
-        else:
-            node_info.append(f"Location {node}")
+        location_name = addresses_df.iloc[node]['location']
+        address = addresses_df.iloc[node]['address']
+        node_info.append(f"Location {node}<br>{location_name}<br>{address}")
+        node_text.append(str(node))
 
 
     node_trace = go.Scatter(
@@ -92,35 +92,52 @@ def plot_graph(G, pos=None, addresses_df=None):
         mode='markers+text',
         hoverinfo='text',
         hovertext=node_info,
-        text=[str(i) for i in range(len(node_x))],
+        text=node_text,
         textposition="middle center",
         marker=dict(
-            color ='grey',
-            size = 15,
-            line=dict(width=2)
-            )
+            color ='red',
+            size = 12,
+            line=dict(width=2, color='white')
+        ),
+        name='Delivery Locations'
     )
 
-    # Create the figure
-    fig = go.Figure(data=[edge_trace, node_trace],
-                    layout=go.Layout(
-                        title='Map',
-                        font=dict(size=16),
-                        showlegend=False,
-                        hovermode='closest',
-                        margin=dict(b=20, l=5, r=5, t=40),
-                        annotations=[dict(
-                            text="Network showing distances between delivery locations.",
-                            showarrow=False,
-                            xref="paper", yref="paper",
-                            x=0.005, y=-0.002,
-                            xanchor='left', yanchor='bottom',
-                            font=dict(size=12)
-                        )],
-                        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
-                    )
+    #Create the figure
+    fig = go.Figure(data=[edge_trace, node_trace])
+
+    fig.update_layout(
+        title='Salt Lake City Delivery Network Map',
+        font=dict(size=16),
+        showlegend=True,
+        hovermode='closest',
+        margin=dict(b=20, l=5, r=5, t=40),
+        annotations=[dict(
+            text="Geographic map showing delivery locations and routes in Salt Lake City area.",
+            showarrow=False,
+            xref="paper", yref="paper",
+            x=0.005, y=-0.002,
+            xanchor='left', yanchor='bottom',
+            font=dict(size=12)
+        )],
+        xaxis=dict(
+            title="Longitude",
+            showgrid=True,
+            zeroline=False,
+            gridcolor='lightgray'
+        ),
+        yaxis=dict(
+            title="Latitude",
+            showgrid=True,
+            zeroline=False,
+            gridcolor='lightgray',
+            scaleanchor="x",
+            scaleratio=1
+        ),
+        plot_bgcolor='white'
+    )
+
     return fig
+
 
 # Create the network graph from distance matrix
 G = create_graph(d_matrix)
@@ -139,7 +156,7 @@ app.layout = [
     Input('network-graph', 'id'),
 )
 def update_network_graph(value):
-    return plot_graph(G, addresses_df=addresses)
+    return plot_map(G, addresses_df=addresses)
 
 @callback(
     Output('graph-content', 'figure'),
