@@ -183,10 +183,10 @@ app.layout = html.Div([
 
         html.Br(),
         html.Label('Population Size'),
-        dcc.Input(id='population-size',type='number',min=10,max=16000,step=10,value=5000),
+        dcc.Input(id='population-size',type='number',min=10,max=32000,step=10,value=5000),
 
         html.Label('Generations'),
-        dcc.Input(id='generations',type='number',min=1,max=50000,step=1,value=32),
+        dcc.Input(id='generations',type='number',min=1,max=50000,step=1,value=512),
 
         html.Label('Crossover Rate'),
         dcc.Input(id='crossover-rate',type='number',min=0.0,max=1,step=0.05,value=0.9),
@@ -256,7 +256,7 @@ def update_graph(n_clicks):
             'generation': sol['generation'],
             'late_cost': len(sol['genome'].late_packages) * 20,
             'mileage_cost': sum(t.mileage for t in sol['genome'].trucks),
-            'trucks_cost': sum(1 for t in sol['genome'].trucks if t.packages) * 100
+            'trucks_cost': sum(1 for t in sol['genome'].trucks if t.packages) * 50
         }
         for i, sol in enumerate(best_solutions_memory)
     ])
