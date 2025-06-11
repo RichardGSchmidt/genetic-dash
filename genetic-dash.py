@@ -45,34 +45,63 @@ def create_graph(distance_matrix):
             G.add_edge(i, j, weight=weight)
     return G
 
-def plot_map(G, addresses_df):
+def plot_map(G, addresses_df, genome=None):
     pos = {}
     for i in range(len(addresses_df)):
         lat = addresses_df.iloc[i]['latitude']
         lon = addresses_df.iloc[i]['longitude']
         pos[i] = (lon, lat)
 
-    #edge tracing lists
-    edge_x = []
-    edge_y = []
-    edge_weights = []
+    edge_traces = []
 
-    for edge in G.edges():
-        x0,y0 = pos[edge[0]]
-        x1,y1 = pos[edge[1]]
-        edge_x.extend([x0,x1,None])
-        edge_y.extend([y0,y1,None])
-        weight = G[edge[0]][edge[1]]['weight']
-        edge_weights.append(weight)
+    if genome is not None:
+        colors = px.colors.qualitative.Plotly
+        for i, truck in enumerate(genome.trucks):
+            if not truck.packages:
+                continue
+            color = colors[i % len(colors)]
+            route = [0]
+            for pkg_id in truck.packages:
+                pkg = genome.packages.get(pkg_id)
+                if pkg and pkg.address in pos:
+                    route.append(pkg.address)
+            route.append(0)
 
-    edge_trace = go.Scatter(
-        x=edge_x,
-        y=edge_y,
-        line=dict(width=0.5, color='#888'),
-        hoverinfo='none',
-        mode='lines',
-        name='Routes'
-    )
+            edge_x = []
+            edge_y = []
+            for j in range(len(route) - 1):
+                x0, y0 = pos[route[j]]
+                x1, y1 = pos[route[j + 1]]
+                edge_x.extend([x0, x1, None])
+                edge_y.extend([y0, y1, None])
+
+            edge_traces.append(go.Scatter(
+                x=edge_x,
+                y=edge_y,
+                line=dict(width=2, color=color),
+                hoverinfo='none',
+                mode='lines',
+                name=f'Truck {i+1}'
+            ))
+    else:
+        # fallback default if no genome is provided
+        edge_x = []
+        edge_y = []
+        for edge in G.edges():
+            x0, y0 = pos[edge[0]]
+            x1, y1 = pos[edge[1]]
+            edge_x.extend([x0, x1, None])
+            edge_y.extend([y0, y1, None])
+
+        edge_traces.append(go.Scatter(
+            x=edge_x,
+            y=edge_y,
+            line=dict(width=0.5, color='#888'),
+            hoverinfo='none',
+            mode='lines',
+            name='Default Routes'
+        ))
+
 
     #Nodes tracing lists
     node_x = []
@@ -109,7 +138,7 @@ def plot_map(G, addresses_df):
     )
 
     #Create the figure
-    fig = go.Figure(data=[edge_trace, node_trace])
+    fig = go.Figure(data=edge_traces + [node_trace])
 
     fig.update_layout(
         title='Salt Lake City Delivery Network Map',
@@ -143,7 +172,6 @@ def plot_map(G, addresses_df):
     )
 
     return fig
-
 
 # Create the network graph from distance matrix
 G = create_graph(d_matrix)
@@ -183,55 +211,92 @@ app.layout = html.Div([
 
     html.Div(className='row', children='Map', style={'textAlign':'center','fontSize':30}),
     dcc.Graph(id='network-graph'),
+    html.Div(className='row', children='View Best Solutions', style={'textAlign': 'center', 'fontSize': 20}),
+    dcc.Slider(
+        id='solution-slider',
+        min=0,
+        max=0,  # We'll update this after GA run
+        step=1,
+        value=0,
+        tooltip={"placement": "bottom", "always_visible": True}
+    ),
+
     html.Div(className='row', children='Cost Per Best Solution', style={'textAlign':'center'}),
     dcc.Graph(id='graph-content'),
-    dcc.Graph(id='generation-track')
+    dcc.Graph(id='generation-track'),
+    dcc.Interval(id='map-update-timer', interval=1000, n_intervals=0)
 ])
 
 @callback(
     Output('network-graph', 'figure'),
-    Input('network-graph', 'id'),
+    Input('solution-slider', 'value')
 )
-def update_network_graph(value):
-    return plot_map(G, addresses_df=addresses)
+def update_network_graph(solution_idx):
+    if 0 <= solution_idx < len(best_solutions_memory):
+        genome = best_solutions_memory[solution_idx]['genome']
+        return plot_map(G, addresses_df=addresses, genome=genome)
+    else:
+        return plot_map(G, addresses_df=addresses, genome=None)
+
 
 @callback(
     Output('graph-content', 'figure'),
-    Input('graph-content', 'id')
+    Input('run-genetics', 'n_clicks'),
+    Input('map-update-timer', 'n_intervals')
 )
-def update_graph(value):
+def update_graph(_, __):
+    if not best_solutions_memory:
+        return go.Figure()
+
+    # Build DataFrame from memory
+    df = pd.DataFrame([
+        {
+            'index': i,
+            'generation': sol['generation'],
+            'late_cost': len(sol['genome'].late_packages) * 20,
+            'mileage_cost': sum(t.mileage for t in sol['genome'].trucks),
+            'trucks_cost': sum(1 for t in sol['genome'].trucks if t.packages) * 100
+        }
+        for i, sol in enumerate(best_solutions_memory)
+    ])
+    df['total_cost'] = df['late_cost'] + df['mileage_cost'] + df['trucks_cost']
+
+    # Build stacked line chart
     fig = go.Figure()
 
     fig.add_trace(go.Scatter(
-        x=best_solutions['index'],
-        y=best_solutions['late_cost'],
+        x=df['index'],
+        y=df['late_cost'],
         mode='lines',
-        name='Late Packages Fee Refunds',
+        name='Late Packages Cost',
         stackgroup='one'
     ))
 
     fig.add_trace(go.Scatter(
-        x=best_solutions['index'],
-        y=best_solutions['mileage_cost'],
+        x=df['index'],
+        y=df['mileage_cost'],
         mode='lines',
         name='Mileage Cost',
         stackgroup='one'
     ))
 
-
     fig.add_trace(go.Scatter(
-        x=best_solutions['index'],
-        y=best_solutions['trucks_cost'],
+        x=df['index'],
+        y=df['trucks_cost'],
         mode='lines',
         name='Trucks Cost',
         stackgroup='one'
     ))
 
-    fig.update_layout(title='Stacked Line Chart of Total Costs of each Best Solution',
-                      xaxis_title='Solution Count',
-                      yaxis_title='Costs')
+    fig.update_layout(
+        title='Stacked Line Chart of Total Cost per Best Solution',
+        xaxis_title='Solution Index',
+        yaxis_title='Cost',
+        hovermode='x unified'
+    )
 
     return fig
+
 
 @callback(
     Output('generation-track', 'figure'),
@@ -250,6 +315,7 @@ def update_generation_graph(value):
     return fig
 @callback(
     Output('output-summary', 'children'),
+    Output('solution-slider', 'max'),
     Input('run-genetics', 'n_clicks'),
     Input('num-trucks', 'value'),
     Input('truck-capacity', 'value'),
@@ -262,7 +328,7 @@ def update_generation_graph(value):
 def run_genetic_algorithm(n_clicks, num_trucks, truck_capacity, truck_speed,
                           population_size, generations, crossover_rate, mutation_rate):
     if n_clicks == 0:
-        return ""
+        return "", 0
 
     # Run the algorithm
     global best_solutions_memory
@@ -282,16 +348,22 @@ def run_genetic_algorithm(n_clicks, num_trucks, truck_capacity, truck_speed,
     )
 
     # Collect results
-    late_count = len(best_solution.late_packages)
-    mileage = sum(truck.mileage for truck in best_solution.trucks)
-    active_trucks = sum(1 for truck in best_solution.trucks if truck.packages)
+    final_solution = best_solutions_memory[-1]['genome']
 
-    return html.Div([
-        html.P(f"Best Total Cost: {best_cost:.2f}"),
-        html.P(f"Late Packages: {late_count}"),
-        html.P(f"Total Mileage: {mileage:.2f}"),
-        html.P(f"Trucks Used: {active_trucks}")
-    ])
+    late_count = len(final_solution.late_packages)
+    mileage = sum(truck.mileage for truck in final_solution.trucks)
+    active_trucks = sum(1 for truck in final_solution.trucks if truck.packages)
+
+    return(
+        html.Div([
+            html.P(f"Best Total Cost: {best_cost:.2f}"),
+            html.P(f"Late Packages: {late_count}"),
+            html.P(f"Total Mileage: {mileage:.2f}"),
+            html.P(f"Trucks Used: {active_trucks}")
+        ]),
+        max(0,len(best_solutions_memory)-1) # slider max
+
+    )
 
 if __name__ == '__main__':
     app.run(debug=True)
