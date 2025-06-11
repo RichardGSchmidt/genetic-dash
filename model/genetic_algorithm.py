@@ -56,14 +56,15 @@ def evaluate_fitness(population, matrices):
 
         active_trucks = 0
         total_mileage = 0.0
+        genome.sort_truck_routes_by_location(d_matrix)
         for truck in genome.trucks:
             if len(truck.packages) > 0:
                 active_trucks += 1
                 total_mileage += truck.mileage
-        total_cost = total_mileage + len(genome.late_packages) * 20.0 + active_trucks * 50
+        total_cost = total_mileage + len(genome.late_packages) * 20.0 + active_trucks * 20
 
         # Fitness is inversely proportional to total cost.
-        fitness = 1.0 / (total_cost + 1.1)
+        fitness = 1.0 / (total_cost + 1)
         fitness_scores.append((genome, fitness, total_cost))
     
     # Sorts by fitness (x->x[1] maps to fitness_scores[x[1]], higher is better, so it's reversed)
@@ -192,25 +193,20 @@ def genetic_algorithm(truck_count, truck_capacity, truck_speed, packages, matric
 
     # Evolution process
     for generation in range(generations):
-
-        # Evaluates fitness of the population members
         population_fitness = evaluate_fitness(population, matrices)
-        
-        # Store the best solution for the generation
         current_best = population_fitness[0]
-        if current_best[2] < best_distance:
-            best_solution = current_best[0]
-            best_distance = current_best[2]
-            # this print statement uses \r and an end="" to keep updating the text in place.
+        current_cost = current_best[2]
 
+        # Only save if this is a new best solution
+        if current_cost < best_distance:
+            best_distance = current_cost
             print(f"Generation {generation}: New best cost = {best_distance:.1f}.")
 
-        #stores every generation's best solution
-        best_solutions_out.append({
-        'generation': generation,
-        'genome': current_best[0],
-        'total_cost':current_best[2],
-        })
+            best_solutions_out.append({
+                'generation': generation,
+                'genome': current_best[0],
+                'total_cost': current_cost
+            })
 
         
         # Select parents based on fitness score for the population, reproductive success rate (which is really it's

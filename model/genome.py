@@ -80,6 +80,27 @@ class Genome:
             )
         )
 
+    def sort_truck_routes_by_location(self, d_matrix):
+        for truck in self.trucks:
+            if not truck.packages:
+                continue
+
+            current_address = 0  # start at hub
+            sorted_route = []
+            remaining = list(truck.packages)
+
+            while remaining:
+                # Get closest package to current address
+                closest_pkg = min(
+                    remaining,
+                    key=lambda pid: d_matrix[current_address][self.packages.get(pid).address]
+                )
+                sorted_route.append(closest_pkg)
+                current_address = self.packages.get(closest_pkg).address
+                remaining.remove(closest_pkg)
+
+            truck.packages = sorted_route
+
     def distribute_packages(self):
         for truck in self.trucks:
             truck.packages = []

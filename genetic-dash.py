@@ -186,7 +186,7 @@ app.layout = html.Div([
         dcc.Input(id='population-size',type='number',min=10,max=32000,step=10,value=5000),
 
         html.Label('Generations'),
-        dcc.Input(id='generations',type='number',min=1,max=50000,step=1,value=512),
+        dcc.Input(id='generations',type='number',min=1,max=50000,step=1,value=64),
 
         html.Label('Crossover Rate'),
         dcc.Input(id='crossover-rate',type='number',min=0.0,max=1,step=0.05,value=0.9),
@@ -198,6 +198,7 @@ app.layout = html.Div([
 
         html.Br(),
         html.Button('Run Genetics', id='run-genetics', n_clicks=0),
+        dcc.Store(id='run-complete-flag', data=0),
         html.Div(id='output-summary')
     ], style={'padding':'20px', 'border':'1px solid black', 'margin':'10px'}),
 
@@ -243,7 +244,7 @@ def update_network_graph(solution_idx):
 
 @callback(
     Output('graph-content', 'figure'),
-    Input('run-genetics', 'n_clicks'),
+    Input('run-complete-flag', 'data'),
 )
 def update_graph(n_clicks):
     if not best_solutions_memory or n_clicks == 0:
@@ -252,15 +253,17 @@ def update_graph(n_clicks):
     # Build DataFrame from memory
     df = pd.DataFrame([
         {
-            'index': i,
             'generation': sol['generation'],
             'late_cost': len(sol['genome'].late_packages) * 20,
             'mileage_cost': sum(t.mileage for t in sol['genome'].trucks),
-            'trucks_cost': sum(1 for t in sol['genome'].trucks if t.packages) * 50
+            'trucks_cost': sum(1 for t in sol['genome'].trucks if t.packages) * 20
         }
-        for i, sol in enumerate(best_solutions_memory)
+        for sol in best_solutions_memory
     ])
+
+    df = df.sort_values(by='generation').reset_index(drop=True)
     df['total_cost'] = df['late_cost'] + df['mileage_cost'] + df['trucks_cost']
+    df['index'] = df.index
 
     # Build stacked line chart
     fig = go.Figure()
@@ -298,6 +301,7 @@ def update_graph(n_clicks):
 
     return fig
 
+
 @callback(
     Output('truck-loadouts', 'children'),
     Input('solution-slider', 'value')
@@ -306,10 +310,12 @@ def update_truck_loadout(solution_idx):
     if 0 <= solution_idx < len(best_solutions_memory):
         genome = best_solutions_memory[solution_idx]['genome']
         truck_displays = []
-
+        total_mileage = 0.0
         for i, truck in enumerate(genome.trucks):
             if not truck.packages:
                 continue
+            else:
+                total_mileage += truck.mileage
 
             pkg_lines = []
             for pkg_id in truck.packages:
@@ -319,9 +325,13 @@ def update_truck_loadout(solution_idx):
                     pkg_lines.append(f"Package {pkg_id} → {addr}")
 
             truck_displays.append(html.Div([
-                html.H5(f"Truck {i+1}"),
+                html.H5(f"Truck {i+1} (Mileage: {truck.mileage:.1f})",),
                 html.Ul([html.Li(line) for line in pkg_lines])
             ], style={'marginBottom': '20px'}))
+        truck_displays = html.Div([
+            html.H3(f"Total Mileage: {total_mileage:.1f}",),
+            html.Div(truck_displays)
+        ])
 
         return truck_displays
 
@@ -330,22 +340,47 @@ def update_truck_loadout(solution_idx):
 
 @callback(
     Output('generation-track', 'figure'),
-    Input('generation-track', 'id')
+    Input('run-complete-flag', 'data')
 )
-def update_generation_graph(value):
+def update_generation_graph(_):
+    if not best_solutions_memory:
+        return go.Figure()
+
+    df = pd.DataFrame([
+        {
+            'generation': sol['generation'],
+            'total_cost': sol['total_cost']
+        }
+        for sol in best_solutions_memory
+    ])
+
+    df = df.sort_values(by='generation').reset_index(drop=True)
+    df['cost_improvement'] = df['total_cost'].shift(1) - df['total_cost']
+    df['cost_improvement'] = df['cost_improvement'].fillna(0)
+
     fig = px.bar(
-        best_solutions,
-        x='index',
-        y='generation',
-        color='generation',
-        title='Generation Timeline',
-        labels={'index': 'Solution Count', 'generation': 'Generation'},
-        color_continuous_scale='Cividis'
+        df,
+        x='generation',
+        y='cost_improvement',
+        title='Improvement per Generation',
+        labels={'generation': 'Generation', 'cost_improvement': 'Cost Improvement'},
+        color='cost_improvement',
+        color_continuous_scale='Bluered'
     )
+
+    fig.update_layout(
+        yaxis_title='Improvement (ΔCost)',
+        xaxis_title='Generation',
+        hovermode='x unified'
+    )
+
     return fig
+
+
 @callback(
     Output('output-summary', 'children'),
     Output('solution-slider', 'max'),
+    Output('run-complete-flag', 'data'),
     Input('run-genetics', 'n_clicks'),
     State('num-trucks', 'value'),
     State('truck-capacity', 'value'),
@@ -392,7 +427,8 @@ def run_genetic_algorithm(n_clicks, num_trucks, truck_capacity, truck_speed,
             html.P(f"Total Mileage: {mileage:.2f}"),
             html.P(f"Trucks Used: {active_trucks}")
         ]),
-        max(0,len(best_solutions_memory)-1) # slider max
+        max(0,len(best_solutions_memory)-1), # slider max
+        n_clicks #makes the charts update
 
     )
 
