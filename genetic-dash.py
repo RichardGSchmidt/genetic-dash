@@ -4,12 +4,17 @@ import plotly.graph_objects as go
 from gen_utils import get_matrices, load_packages
 import networkx as nx
 import pandas as pd
+from model.genetic_algorithm import genetic_algorithm
 
 #Import Data
 best_solutions = pd.read_csv('./data/best_solutions.csv')
 d_matrix, t_matrix = matrices = get_matrices()
 addresses = pd.read_csv('./data/addresses.csv')
 packages = load_packages()
+
+#store best solutions in memory
+global best_solutions_memory
+best_solutions_memory = []
 
 
 # Incorporate CSS
@@ -243,6 +248,50 @@ def update_generation_graph(value):
         color_continuous_scale='Cividis'
     )
     return fig
+@callback(
+    Output('output-summary', 'children'),
+    Input('run-genetics', 'n_clicks'),
+    Input('num-trucks', 'value'),
+    Input('truck-capacity', 'value'),
+    Input('truck-speed', 'value'),
+    Input('population-size', 'value'),
+    Input('generations', 'value'),
+    Input('crossover-rate', 'value'),
+    Input('mutation-rate', 'value')
+)
+def run_genetic_algorithm(n_clicks, num_trucks, truck_capacity, truck_speed,
+                          population_size, generations, crossover_rate, mutation_rate):
+    if n_clicks == 0:
+        return ""
+
+    # Run the algorithm
+    global best_solutions_memory
+    best_solutions_memory = []
+    best_cost = None
+    _, best_cost = genetic_algorithm(
+        truck_count=num_trucks,
+        truck_capacity=truck_capacity,
+        truck_speed=truck_speed,
+        packages=packages,
+        matrices=(d_matrix, t_matrix),
+        pop_size=population_size,
+        generations=generations,
+        crossover_rate=crossover_rate,
+        mutation_rate=mutation_rate,
+        best_solutions_out=best_solutions_memory
+    )
+
+    # Collect results
+    late_count = len(best_solution.late_packages)
+    mileage = sum(truck.mileage for truck in best_solution.trucks)
+    active_trucks = sum(1 for truck in best_solution.trucks if truck.packages)
+
+    return html.Div([
+        html.P(f"Best Total Cost: {best_cost:.2f}"),
+        html.P(f"Late Packages: {late_count}"),
+        html.P(f"Total Mileage: {mileage:.2f}"),
+        html.P(f"Trucks Used: {active_trucks}")
+    ])
 
 if __name__ == '__main__':
     app.run(debug=True)

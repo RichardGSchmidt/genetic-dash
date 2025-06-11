@@ -46,7 +46,5 @@ def load_packages():
                 int(item[0]),  # package id
                 item[1],  # address
                 item[2])  # time_due
-            # item = Package(0,1,2,3,4,5,6,7,8)
-            # Insert into hash chain in accordance with ta
             packages.insert(int(item[0]), pkg)
         return packages
