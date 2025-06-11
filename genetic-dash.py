@@ -380,6 +380,7 @@ def update_generation_graph(_):
 @callback(
     Output('output-summary', 'children'),
     Output('solution-slider', 'max'),
+    Output('solution-slider', 'value'),
     Output('run-complete-flag', 'data'),
     Input('run-genetics', 'n_clicks'),
     State('num-trucks', 'value'),
@@ -428,6 +429,7 @@ def run_genetic_algorithm(n_clicks, num_trucks, truck_capacity, truck_speed,
             html.P(f"Trucks Used: {active_trucks}")
         ]),
         max(0,len(best_solutions_memory)-1), # slider max
+        len(best_solutions_memory) - 1,
         n_clicks #makes the charts update
 
     )
