@@ -79,4 +79,4 @@ class Package:
         if self.time_delivered is None:
             return for_time < self.time_due
         else:
-            return self.time_delivered < self.time_due
+            return self.time_delivered <= self.time_due

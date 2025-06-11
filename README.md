@@ -6,13 +6,13 @@ A Dash-based visualization dashboard for genetic algorithm results, showing cost
 
 1. Clone this repository:
 ```bash
-git https://github.com/RichardGSchmidt/genetic-dash.git
+git clone https://github.com/RichardGSchmidt/genetic-dash.git
 cd genetic-dash
 ```
 
 2. Create a virtual environment (recommended):
 ```bash
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
@@ -25,7 +25,7 @@ pip install -r requirements.txt
 
 Run the dashboard:
 ```bash
-python genetic-dash.py
+python3 genetic-dash.py
 ```
 
 The dashboard will be available at `http://127.0.0.1:8050/`
@@ -33,7 +33,8 @@ The dashboard will be available at `http://127.0.0.1:8050/`
 ## Data Requirements
 
 The application expects:
-- `./data/best_solutions.csv` - Contains genetic algorithm results
+- `./addresses.csv` - Contains Address metadata.
+- `./data/best_solutions.csv` - Contains dummy solution data for testing
 - `./data/distances.csv` - Distance matrix for routing calculations
 - `./dashstyles.css` - CSS styling file
 

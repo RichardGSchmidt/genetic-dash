@@ -1,5 +1,6 @@
+import datetime
 class Vehicle:
-    def __init__(self, capacity, speed, packages, mileage, address, departure_time):
+    def __init__(self, capacity, speed, packages, mileage, address, departure_time=datetime.timedelta(hours=8)):
         self.capacity = capacity
         self.speed = speed
         self.packages = packages
