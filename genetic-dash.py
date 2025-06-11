@@ -18,7 +18,7 @@ global best_solutions_memory
 best_solutions_memory = []
 
 
-# Incorporate CSS
+# Incorporate modified Dash CSS Styleguide found at https://codepen.io/chriddyp/pen/bWLwgP
 stylesheets = ['./dashstyles.css']
 app = Dash(external_stylesheets=stylesheets)
 
@@ -452,4 +452,4 @@ def format_time(t):
     return str(t)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0',port=port,debug=True)
