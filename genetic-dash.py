@@ -1,5 +1,5 @@
 import datetime
-
+import os
 from dash import Dash, html, dash_table, dcc, callback, Output, Input, State
 import plotly.express as px
 import plotly.graph_objects as go
@@ -12,6 +12,7 @@ from model.genetic_algorithm import genetic_algorithm
 addresses = pd.read_csv('./data/addresses.csv')
 packages = load_packages()
 d_matrix = load_distances()
+port = int(os.environ.get('PORT', 8050))
 
 #store best solutions in memory
 global best_solutions_memory
