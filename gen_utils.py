@@ -30,9 +30,9 @@ def get_time_matrix(d_matrix, speed):
     return time_matrix
 
 #get both distance and time matrix as a tuple
-def get_matrices():
+def get_matrices(speed):
     d_matrix = load_distances()
-    t_matrix = get_time_matrix(d_matrix, 18)
+    t_matrix = get_time_matrix(d_matrix, speed)
     return d_matrix, t_matrix
 
 def load_packages():
