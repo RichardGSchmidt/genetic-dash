@@ -57,6 +57,8 @@ class Genome:
                 index2 = truck.packages.index(pid2)
             #if both exist, swap them
             if truck1 and truck2:
+                if len(truck1.packages) > truck1.capacity or len(truck2.packages) > truck2.capacity:
+                    return  # cancel swap if invalid
                 truck1.packages[index1], truck2.packages[index2] = truck2.packages[index2], truck1.packages[index1]
         self.sort_genome()
         return
@@ -78,22 +80,44 @@ class Genome:
             )
         )
 
+    def distribute_packages(self):
+        for truck in self.trucks:
+            truck.packages = []
+
+        truck_caps = [truck.capacity for truck in self.trucks]
+        truck_loads = [0] * len(self.trucks)
+
+        for pkg_id in self.package_list:
+            for i in range(len(self.trucks)):
+                if truck_loads[i] < truck_caps[i]:
+                    self.trucks[i].packages.append(pkg_id)
+                    truck_loads[i] += 1
+                    break
+            else:
+                raise ValueError("Not enough capacity to assign all packages!")
 
     def fill_randomly(self):
-        #fill with entire packing list
-        #first empty the trucks
-        for truck_to_empty in self.trucks:
-            truck_to_empty.packages = []
+        for truck in self.trucks:
+            truck.packages = []
 
         package_ids = list(self.package_list)
         random.shuffle(package_ids)
 
-        #then go through every pack and assign it to a random vehicle
-        for pack_id in package_ids:
-            truck = random.choice(self.trucks)
-            truck.packages.append(pack_id)
-        self.sort_genome()
+        # Track truck loads
+        truck_loads = [0] * len(self.trucks)
+        truck_caps = [truck.capacity for truck in self.trucks]
 
+        for pack_id in package_ids:
+            # Only pick trucks that have room
+            valid_trucks = [i for i, load in enumerate(truck_loads) if load < truck_caps[i]]
+            if not valid_trucks:
+                raise ValueError("Not enough capacity to assign all packages!")
+
+            chosen_index = random.choice(valid_trucks)
+            self.trucks[chosen_index].packages.append(pack_id)
+            truck_loads[chosen_index] += 1
+
+        self.sort_genome()
 
     def __str__(self):
         output = "Genome Truck Assignments:\n"

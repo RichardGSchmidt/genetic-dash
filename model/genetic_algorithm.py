@@ -60,7 +60,7 @@ def evaluate_fitness(population, matrices):
             if len(truck.packages) > 0:
                 active_trucks += 1
                 total_mileage += truck.mileage
-        total_cost = total_mileage + len(genome.late_packages) * 20.0 + active_trucks * 100
+        total_cost = total_mileage + len(genome.late_packages) * 20.0 + active_trucks * 50
 
         # Fitness is inversely proportional to total cost.
         fitness = 1.0 / (total_cost + 1.1)
@@ -91,43 +91,75 @@ def crossover(parents, crossover_rate):
     offspring = []
 
     for i in range(0, len(parents), 2):
-        if i + 1 < len(parents):
-            parent1 = parents[i]
-            parent2 = parents[i + 1]
+        if i + 1 >= len(parents):
+            break
 
-            if random.random() < crossover_rate:
-                # Crossover point at the truck level
-                cut = random.randint(1, len(parent1.trucks) - 1)
+        parent1 = parents[i]
+        parent2 = parents[i + 1]
 
-                # Create new truck lists
-                trucks1 = []
-                trucks2 = []
+        if random.random() < crossover_rate:
+            child1 = parent1.make_copy()
+            child2 = parent2.make_copy()
 
-                for t in range(len(parent1.trucks)):
-                    source1 = parent1.trucks[t] if t < cut else parent2.trucks[t]
-                    source2 = parent2.trucks[t] if t < cut else parent1.trucks[t]
+            # Step 1: Clear child truck routes
+            for truck in child1.trucks:
+                truck.packages = []
+            for truck in child2.trucks:
+                truck.packages = []
 
-                    # Clone truck state (without linking the same object)
-                    trucks1.append(Vehicle(source1.capacity, source1.speed, list(source1.packages), 0, 0, source1.depart_time))
-                    trucks2.append(Vehicle(source2.capacity, source2.speed, list(source2.packages), 0, 0, source2.depart_time))
+            assigned1 = set()
+            assigned2 = set()
 
-                # Create child genomes
-                child1 = Genome(trucks1, parent1.packages)
-                child2 = Genome(trucks2, parent2.packages)
+            # Step 2: Randomly pick half of the trucks from each parent
+            truck_indices = list(range(len(parent1.trucks)))
+            random.shuffle(truck_indices)
+            half = len(truck_indices) // 2
 
-                offspring.append(child1)
-                offspring.append(child2)
-            else:
-                # No crossover, deep copy the parent genomes
-                offspring.append(parent1.make_copy())
-                offspring.append(parent2.make_copy())
+            for idx in truck_indices[:half]:
+                child1.trucks[idx].packages = list(parent1.trucks[idx].packages)
+                assigned1.update(parent1.trucks[idx].packages)
+
+                child2.trucks[idx].packages = list(parent2.trucks[idx].packages)
+                assigned2.update(parent2.trucks[idx].packages)
+
+            # Step 3: Assign missing packages to remaining trucks
+            all_ids = set(parent1.package_list)
+            remaining1 = list(all_ids - assigned1)
+            remaining2 = list(all_ids - assigned2)
+
+            # Distribute remaining1 to child1, respecting capacity
+            fill_remaining_packages(child1.trucks, remaining1)
+
+            # Distribute remaining2 to child2, respecting capacity
+            fill_remaining_packages(child2.trucks, remaining2)
+
+            child1.sort_genome()
+            child2.sort_genome()
+            offspring.append(child1)
+            offspring.append(child2)
+        else:
+            offspring.append(parent1.make_copy())
+            offspring.append(parent2.make_copy())
 
     return offspring
+
+def fill_remaining_packages(trucks, remaining_packages):
+    truck_loads = [len(t.packages) for t in trucks]
+    truck_caps = [t.capacity for t in trucks]
+
+    for pkg in remaining_packages:
+        valid_trucks = [i for i in range(len(trucks)) if truck_loads[i] < truck_caps[i]]
+        if not valid_trucks:
+            raise ValueError("Not enough truck capacity to place all packages during crossover!")
+        choice = random.choice(valid_trucks)
+        trucks[choice].packages.append(pkg)
+        truck_loads[choice] += 1
+
 
 # Mutation function
 def mutation(offspring, mutation_rate):
     mutated = []
-    
+
     for g in offspring:
         genome = g.make_copy()
 
@@ -138,7 +170,7 @@ def mutation(offspring, mutation_rate):
                 pid1, pid2 = random.sample(pkg_ids,2)
                 genome.swap_packages(pid1,pid2)
         mutated.append(genome)
-    
+
     return mutated
 
 # Genetic algorithm
@@ -146,6 +178,8 @@ def genetic_algorithm(truck_count, truck_capacity, truck_speed, packages, matric
     # Create initial population
     if best_solutions_out is None:
         best_solutions_out = []
+    else:
+        best_solutions_out.clear()
     trucks = []
     for i in range(truck_count):
          trucks.append(Vehicle(truck_capacity, truck_speed, [], 0, 0))
@@ -168,13 +202,15 @@ def genetic_algorithm(truck_count, truck_capacity, truck_speed, packages, matric
             best_solution = current_best[0]
             best_distance = current_best[2]
             # this print statement uses \r and an end="" to keep updating the text in place.
-            print(f"\rGeneration {generation}: New best cost = {best_distance:.1f} miles (not including return leg).", end="")
-            #stores every improving solution
-            best_solutions_out.append({
-                'generation': generation,
-                'genome': current_best[0],
-                'total_cost':current_best[2],
-            })
+
+            print(f"Generation {generation}: New best cost = {best_distance:.1f}.")
+
+        #stores every generation's best solution
+        best_solutions_out.append({
+        'generation': generation,
+        'genome': current_best[0],
+        'total_cost':current_best[2],
+        })
 
         
         # Select parents based on fitness score for the population, reproductive success rate (which is really it's
@@ -189,8 +225,8 @@ def genetic_algorithm(truck_count, truck_capacity, truck_speed, packages, matric
         offspring = mutation(offspring, mutation_rate)
         
         # Create new population with elitism (keep the best (pop_size / survival_rate) solution)
-        survival_rate = 20
-        elite_count = max(1,pop_size//survival_rate)
+        survival_rate = 10
+        elite_count = max(5,pop_size//survival_rate)
         elites = [e[0] for e in population_fitness[:elite_count]]
         population = elites + offspring[:(pop_size-elite_count)]
 
