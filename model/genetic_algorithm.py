@@ -24,18 +24,27 @@ def evaluate_fitness(population, matrices):
     d_matrix, t_matrix = matrices
 
     for genome in population:
+        genome.sort_truck_routes_by_location(d_matrix)
+        for pkg_id in genome.package_list:
+            pkg = genome.packages.get(pkg_id)
+            pkg.time_delivered = None
         genome.late_packages = []
         # Calculate distance for each truck's route
+        for pkg_id in genome.package_list:
+            pkg = genome.packages.get(pkg_id)
+            pkg.time_delivered = None
         for truck in genome.trucks:
             truck.mileage = 0.0
-            truck.time = truck.depart_time
+            truck.time = genome.departure_time
+            truck.departure_time = genome.departure_time
             truck.address = 0
+            truck.delivery_log = []#to hold deliveries for Dash
             for idx, package_id in enumerate(truck.packages):
                 #if the vehicle is empty it goes to the station to refill if there are more packages
-                if idx % truck.capacity == 0 and idx != 0:
-                    truck.mileage += d_matrix[truck.address][0]
-                    truck.time += t_matrix[truck.address][0]
-                    truck.address = 0
+                #if idx % truck.capacity == 0 and idx != 0:
+                #    truck.mileage += d_matrix[truck.address][0]
+                #    truck.time += t_matrix[truck.address][0]
+                #    truck.address = 0
 
                 #get package from the genome
                 pkg = genome.packages.get(package_id)
@@ -45,7 +54,9 @@ def evaluate_fitness(population, matrices):
                 truck.mileage += d_matrix[truck.address][next_address]
                 truck.time += t_matrix[truck.address][next_address]
                 truck.address = next_address
+
                 pkg.time_delivered = truck.time
+                truck.delivery_log.append((package_id, truck.time))
                 if not pkg.ontime(truck.time):
                     genome.late_packages.append(package_id)
 
@@ -56,7 +67,6 @@ def evaluate_fitness(population, matrices):
 
         active_trucks = 0
         total_mileage = 0.0
-        genome.sort_truck_routes_by_location(d_matrix)
         for truck in genome.trucks:
             if len(truck.packages) > 0:
                 active_trucks += 1
@@ -201,6 +211,7 @@ def genetic_algorithm(truck_count, truck_capacity, truck_speed, packages, matric
         if current_cost < best_distance:
             best_distance = current_cost
             print(f"Generation {generation}: New best cost = {best_distance:.1f}.")
+            print(current_best[0])
 
             best_solutions_out.append({
                 'generation': generation,

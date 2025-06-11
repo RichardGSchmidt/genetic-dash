@@ -1,15 +1,17 @@
+import datetime
+
 from dash import Dash, html, dash_table, dcc, callback, Output, Input, State
 import plotly.express as px
 import plotly.graph_objects as go
-from gen_utils import get_matrices, load_packages
+from gen_utils import get_matrices, load_packages, load_distances
 import networkx as nx
 import pandas as pd
 from model.genetic_algorithm import genetic_algorithm
 
 #Import Data
-d_matrix, t_matrix = matrices = get_matrices()
 addresses = pd.read_csv('./data/addresses.csv')
 packages = load_packages()
+d_matrix = load_distances()
 
 #store best solutions in memory
 global best_solutions_memory
@@ -186,13 +188,13 @@ app.layout = html.Div([
         dcc.Input(id='population-size',type='number',min=10,max=32000,step=10,value=5000),
 
         html.Label('Generations'),
-        dcc.Input(id='generations',type='number',min=1,max=50000,step=1,value=64),
+        dcc.Input(id='generations',type='number',min=1,max=50000,step=1,value=32),
 
         html.Label('Crossover Rate'),
-        dcc.Input(id='crossover-rate',type='number',min=0.0,max=1,step=0.05,value=0.9),
+        dcc.Input(id='crossover-rate',type='number',min=0.0,max=1,step=0.05,value=0.8),
 
         html.Label('Mutation Rate'),
-        dcc.Input(id='mutation-rate',type='number',min=0.0,max=1,step=0.01,value=0.02),
+        dcc.Input(id='mutation-rate',type='number',min=0.0,max=1,step=0.01,value=0.05),
 
 
 
@@ -318,12 +320,19 @@ def update_truck_loadout(solution_idx):
                 total_mileage += truck.mileage
 
             pkg_lines = []
-            for pkg_id in truck.packages:
+            for pkg_id, delivered_time in truck.delivery_log:
                 pkg = genome.packages.get(pkg_id)
-                if pkg:
-                    addr = addresses.iloc[pkg.address]['location']
-                    pkg_lines.append(f"Package {pkg_id} → {addr}")
-
+                addr = addresses.iloc[pkg.address]['location']
+                due = "EOD" if pkg.time_due == datetime.timedelta(hours=23, minutes=59, seconds=59) else format_time(
+                    pkg.time_due)
+                delivered = format_time(delivered_time)
+                late = delivered_time > pkg.time_due
+                line = html.Span([
+                    f"Package {pkg_id} → {addr} (Due: {due}, Delivered: ",
+                    html.Span(delivered, style={'color': 'red' if late else 'black'}),
+                    ")"
+                ])
+                pkg_lines.append(line)
             truck_displays.append(html.Div([
                 html.H5(f"Truck {i+1} (Mileage: {truck.mileage:.1f})",),
                 html.Ul([html.Li(line) for line in pkg_lines])
@@ -401,12 +410,13 @@ def run_genetic_algorithm(n_clicks, num_trucks, truck_capacity, truck_speed,
     global best_solutions_memory
     best_solutions_memory = []
     best_cost = None
+    matrices = get_matrices(truck_speed)
     _, best_cost = genetic_algorithm(
         truck_count=num_trucks,
         truck_capacity=truck_capacity,
         truck_speed=truck_speed,
         packages=packages,
-        matrices=(d_matrix, t_matrix),
+        matrices=matrices,
         pop_size=population_size,
         generations=generations,
         crossover_rate=crossover_rate,
@@ -433,6 +443,13 @@ def run_genetic_algorithm(n_clicks, num_trucks, truck_capacity, truck_speed,
         n_clicks #makes the charts update
 
     )
+def format_time(t):
+    if isinstance(t, datetime.timedelta):
+        total_minutes = int(t.total_seconds() // 60)
+        hours = total_minutes // 60
+        minutes = total_minutes % 60
+        return f"{hours:02}:{minutes:02}"
+    return str(t)
 
 if __name__ == '__main__':
     app.run(debug=True)

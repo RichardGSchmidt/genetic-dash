@@ -34,7 +34,7 @@ class Genome:
             )
             for t in self.trucks
         ]
-        return Genome(trucks, self.packages)
+        return Genome(trucks, self.packages.safe_copy())
 
 
     def swap_packages(self, pid1, pid2):
