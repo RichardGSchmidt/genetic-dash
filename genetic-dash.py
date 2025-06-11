@@ -1,4 +1,4 @@
-from dash import Dash, html, dash_table, dcc, callback, Output, Input
+from dash import Dash, html, dash_table, dcc, callback, Output, Input, State
 import plotly.express as px
 import plotly.graph_objects as go
 from gen_utils import get_matrices, load_packages
@@ -7,7 +7,6 @@ import pandas as pd
 from model.genetic_algorithm import genetic_algorithm
 
 #Import Data
-best_solutions = pd.read_csv('./data/best_solutions.csv')
 d_matrix, t_matrix = matrices = get_matrices()
 addresses = pd.read_csv('./data/addresses.csv')
 packages = load_packages()
@@ -20,13 +19,6 @@ best_solutions_memory = []
 # Incorporate CSS
 stylesheets = ['./dashstyles.css']
 app = Dash(external_stylesheets=stylesheets)
-
-
-# Compute cumulative costs for stacking
-best_solutions['late_cost'] = best_solutions['late_packages'] * 20
-best_solutions['mileage_cost'] = best_solutions['mileage']
-best_solutions['trucks_cost'] = best_solutions['trucks_used'] * 200
-best_solutions['total_cost'] = best_solutions['trucks_cost'] + best_solutions['late_cost'] + best_solutions['mileage_cost']
 
 
 #creates a network graph from a distance matrix
@@ -191,10 +183,10 @@ app.layout = html.Div([
 
         html.Br(),
         html.Label('Population Size'),
-        dcc.Input(id='population-size',type='number',min=10,max=8000,step=10,value=5000),
+        dcc.Input(id='population-size',type='number',min=10,max=16000,step=10,value=5000),
 
         html.Label('Generations'),
-        dcc.Input(id='generations',type='number',min=1,max=2000,step=1,value=32),
+        dcc.Input(id='generations',type='number',min=1,max=50000,step=1,value=32),
 
         html.Label('Crossover Rate'),
         dcc.Input(id='crossover-rate',type='number',min=0.0,max=1,step=0.05,value=0.9),
@@ -209,8 +201,19 @@ app.layout = html.Div([
         html.Div(id='output-summary')
     ], style={'padding':'20px', 'border':'1px solid black', 'margin':'10px'}),
 
-    html.Div(className='row', children='Map', style={'textAlign':'center','fontSize':30}),
-    dcc.Graph(id='network-graph'),
+    html.Div(className='row', children=[
+        html.Div([
+            dcc.Graph(id='network-graph')
+        ], style={'width': '70%', 'display': 'inline-block', 'verticalAlign': 'top'}),
+
+        html.Div([
+            html.H4("Truck Loadouts"),
+            html.Div(id='truck-loadouts', style={
+                'overflowY': 'scroll', 'maxHeight': '500px',
+                'border': '1px solid #ccc', 'padding': '10px'
+            })
+        ], style={'width': '28%', 'display': 'inline-block', 'verticalAlign': 'top', 'marginLeft': '2%'})
+    ]),
     html.Div(className='row', children='View Best Solutions', style={'textAlign': 'center', 'fontSize': 20}),
     dcc.Slider(
         id='solution-slider',
@@ -223,8 +226,7 @@ app.layout = html.Div([
 
     html.Div(className='row', children='Cost Per Best Solution', style={'textAlign':'center'}),
     dcc.Graph(id='graph-content'),
-    dcc.Graph(id='generation-track'),
-    dcc.Interval(id='map-update-timer', interval=1000, n_intervals=0)
+    dcc.Graph(id='generation-track')
 ])
 
 @callback(
@@ -242,10 +244,9 @@ def update_network_graph(solution_idx):
 @callback(
     Output('graph-content', 'figure'),
     Input('run-genetics', 'n_clicks'),
-    Input('map-update-timer', 'n_intervals')
 )
-def update_graph(_, __):
-    if not best_solutions_memory:
+def update_graph(n_clicks):
+    if not best_solutions_memory or n_clicks == 0:
         return go.Figure()
 
     # Build DataFrame from memory
@@ -297,6 +298,35 @@ def update_graph(_, __):
 
     return fig
 
+@callback(
+    Output('truck-loadouts', 'children'),
+    Input('solution-slider', 'value')
+)
+def update_truck_loadout(solution_idx):
+    if 0 <= solution_idx < len(best_solutions_memory):
+        genome = best_solutions_memory[solution_idx]['genome']
+        truck_displays = []
+
+        for i, truck in enumerate(genome.trucks):
+            if not truck.packages:
+                continue
+
+            pkg_lines = []
+            for pkg_id in truck.packages:
+                pkg = genome.packages.get(pkg_id)
+                if pkg:
+                    addr = addresses.iloc[pkg.address]['location']
+                    pkg_lines.append(f"Package {pkg_id} → {addr}")
+
+            truck_displays.append(html.Div([
+                html.H5(f"Truck {i+1}"),
+                html.Ul([html.Li(line) for line in pkg_lines])
+            ], style={'marginBottom': '20px'}))
+
+        return truck_displays
+
+    return "No solution selected."
+
 
 @callback(
     Output('generation-track', 'figure'),
@@ -317,13 +347,14 @@ def update_generation_graph(value):
     Output('output-summary', 'children'),
     Output('solution-slider', 'max'),
     Input('run-genetics', 'n_clicks'),
-    Input('num-trucks', 'value'),
-    Input('truck-capacity', 'value'),
-    Input('truck-speed', 'value'),
-    Input('population-size', 'value'),
-    Input('generations', 'value'),
-    Input('crossover-rate', 'value'),
-    Input('mutation-rate', 'value')
+    State('num-trucks', 'value'),
+    State('truck-capacity', 'value'),
+    State('truck-speed', 'value'),
+    State('population-size', 'value'),
+    State('generations', 'value'),
+    State('crossover-rate', 'value'),
+    State('mutation-rate', 'value'),
+    prevent_initial_call=True
 )
 def run_genetic_algorithm(n_clicks, num_trucks, truck_capacity, truck_speed,
                           population_size, generations, crossover_rate, mutation_rate):
