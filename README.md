@@ -19,7 +19,7 @@ The application expects:
 
 ## Installation
 
-1. Clone this repository:
+1. Clone this repository (or download the zip, extract, and navigate to it in terminal):
 ```bash
 git clone https://github.com/RichardGSchmidt/genetic-dash.git
 cd genetic-dash
