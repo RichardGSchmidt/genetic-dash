@@ -1,4 +1,14 @@
 #!/bin/bash
+# This script updates and rebuilds a container hosted on an Ubuntu server
+# on execution.  Used with chrontab for rebuild on server reboot.
+
+
+# To implement, make a copy and change the path to the location you cloned the repo
+# chmod 555 the script
+# Then add a chrontab via chrontab -e for the following:
+# @reboot /path/to/script/server_boot_script.sh
+
+#crontab doesn't provide path in it's environment
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 #go to path if exists or exit, you need to manually put the correct directory.
