@@ -1,7 +1,8 @@
 #!/bin/bash
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-#go to path if exists or exit
-cd ~/genetic-dash || exit
+#go to path if exists or exit, you need to manually put the correct directory.
+cd /home/$USER/genetic-dash || exit
 
 #pull from git hub
 git pull origin master
