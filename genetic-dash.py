@@ -13,7 +13,6 @@ import hashlib
 
 #Import Data
 addresses = pd.read_csv('./data/addresses.csv')
-stylesheets = ['./dashstyles.css']
 d_matrix = load_distances()
 #Importing styles from dash bootstrap templates
 app = Dash(__name__, external_stylesheets=[dbc.themes.CYBORG])
