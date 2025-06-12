@@ -186,10 +186,10 @@ app.layout = html.Div([
 
         html.Br(),
         html.Label('Population Size'),
-        dcc.Input(id='population-size',type='number',min=10,max=32000,step=10,value=5000),
+        dcc.Input(id='population-size',type='number',min=10,max=32000,step=10,value=100),
 
         html.Label('Generations'),
-        dcc.Input(id='generations',type='number',min=1,max=50000,step=1,value=32),
+        dcc.Input(id='generations',type='number',min=1,max=50000,step=1,value=16),
 
         html.Label('Crossover Rate'),
         dcc.Input(id='crossover-rate',type='number',min=0.0,max=1,step=0.05,value=0.8),
