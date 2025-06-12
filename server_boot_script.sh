@@ -4,7 +4,7 @@
 cd ~/genetic-dash || exit
 
 #pull from git hub
-git pull origin main
+git pull origin master
 
 #build the dockerfile
 docker build -t genetic-dash .
