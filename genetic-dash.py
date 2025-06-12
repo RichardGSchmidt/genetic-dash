@@ -60,41 +60,47 @@ def plot_map(G, addresses_df, genome=None):
                     route.append(pkg.address)
             route.append(0)
 
-            edge_trace = go.Scattermapbox(
-                lon=[pos[pt][0] for pt in route],
-                lat=[pos[pt][1] for pt in route],
-                mode='lines',
-                line=dict(width=2, color=color),
-                name=f'Truck {i+1}'
-            )
+            edge_trace = {
+                "type": "scattermap",
+                "lon": [pos[pt][0] for pt in route],
+                "lat": [pos[pt][1] for pt in route],
+                "mode": "lines",
+                "line": {"width": 2, "color": color},
+                "name": f"Truck {i+1}"
+            }
             edge_traces.append(edge_trace)
     else:
         for edge in G.edges():
             x0, y0 = pos[edge[0]]
             x1, y1 = pos[edge[1]]
-            edge_trace = go.Scattermapbox(
-                lon=[x0, x1],
-                lat=[y0, y1],
-                mode='lines',
-                line=dict(width=0.5, color='gray'),
-                name='Default Routes'
-            )
+            edge_trace = {
+                "type": "scattermap",
+                "lon": [x0, x1],
+                "lat": [y0, y1],
+                "mode": "lines",
+                "line": {"width": 0.5, "color": "gray"},
+                "name": "Default Routes"
+            }
             edge_traces.append(edge_trace)
 
-    # Add node points
-    node_trace = go.Scattermapbox(
-        lon=[pos[i][0] for i in G.nodes()],
-        lat=[pos[i][1] for i in G.nodes()],
-        mode='markers+text',
-        marker=dict(size=10, color='red'),
-        text=[str(i) for i in G.nodes()],
-        hovertext=[
+    # Add node markers
+    node_trace = {
+        "type": "scattermap",
+        "lon": [pos[i][0] for i in G.nodes()],
+        "lat": [pos[i][1] for i in G.nodes()],
+        "mode": "markers+text",
+        "marker": {
+            "size": [12 if i == 0 else 8 for i in G.nodes()],
+            "color": ["blue" if i == 0 else "red" for i in G.nodes()],
+        },
+        "text": [str(i) for i in G.nodes()],
+        "textposition": "top center",
+        "hovertext": [
             f"{addresses_df.iloc[i]['location']}<br>{addresses_df.iloc[i]['address']}"
             for i in G.nodes()
         ],
-        textposition="top center",
-        name='Locations'
-    )
+        "name": "Locations"
+    }
 
     fig = go.Figure(data=edge_traces + [node_trace])
 
@@ -234,6 +240,7 @@ app.layout = html.Div([
         ], style={'width': '28%', 'display': 'inline-block', 'verticalAlign': 'top', 'marginLeft': '2%'})
     ]),
     html.Div(className='row', children='View Best Solutions', style={'textAlign': 'center', 'fontSize': 20}),
+    html.Br(),
     dcc.Slider(
         id='solution-slider',
         min=0,
@@ -314,7 +321,7 @@ def update_graph(n_clicks):
         title='Stacked Line Chart of Total Cost per Best Solution',
         xaxis_title='Solution Index',
         yaxis_title='Cost',
-        hovermode='x unified'
+        hovermode='x unified',
     )
 
     return fig
@@ -328,15 +335,13 @@ def update_truck_loadout(solution_idx):
     if 0 <= solution_idx < len(best_solutions_memory):
         genome = best_solutions_memory[solution_idx]['genome']
         generation = best_solutions_memory[solution_idx]['generation']
-        truck_displays = []
         total_mileage = 0.0
+        data_rows = []
+        truck_tables = []
         for i, truck in enumerate(genome.trucks):
             if not truck.packages:
                 continue
-            else:
-                total_mileage += truck.mileage
-
-            pkg_lines = []
+            total_mileage += truck.mileage
             for pkg_id, delivered_time in truck.delivery_log:
                 pkg = genome.packages.get(pkg_id)
                 addr = addresses.iloc[pkg.address]['location']
@@ -344,22 +349,42 @@ def update_truck_loadout(solution_idx):
                     pkg.time_due)
                 delivered = format_time(delivered_time)
                 late = delivered_time > pkg.time_due
-                line = html.Span([
-                    f"Package {pkg_id} → {addr} (Due: {due}, Delivered: ",
-                    html.Span(delivered, style={'color': 'red' if late else 'black'}),
-                    ")"
-                ])
-                pkg_lines.append(line)
-            truck_displays.append(html.Div([
-                html.H5(f"Truck {i+1} (Mileage: {truck.mileage:.1f})",),
-                html.Ul([html.Li(line) for line in pkg_lines])
-            ], style={'marginBottom': '20px'}))
-        #this arranges everything together for display
+                data_rows.append({
+                    "Package": pkg_id,
+                    "Location": addr,
+                    "Due": due,
+                    "Delivered": delivered,
+                    "Late?": "Yes" if late else "No",
+                    "Mileage": f"{truck.mileage:.1f}"
+                })
+
+            #this arranges everything together in a table for display
+            table = dash_table.DataTable(
+                columns=[
+                    {"name": "Package", "id": "Package"},
+                    {"name": "Location", "id": "Location"},
+                    {"name": "Due", "id": "Due"},
+                    {"name": "Delivered", "id": "Delivered"},
+                    {"name": "Late?", "id": "Late?"},
+                ],
+                data=data_rows,
+                style_table={'overflowX': 'auto'},
+                style_cell={'padding': '5px', 'textAlign': 'left'},
+                style_header={'backgroundColor': '#f1f1f1', 'fontWeight': 'bold'},
+                page_size=15
+            )
+
+            truck_tables.append(html.Div([
+                html.H4(f'Truck {i + 1} Mileage: {truck.mileage}'),
+                table,
+                html.Hr()
+            ]))
+
         truck_displays = html.Div([
             html.H2(f'{total_mileage:.1f} miles'),
             html.H3(f'Solution: {solution_idx + 1} Generation: {generation}'),
             html.Pre(str(genome)),
-            html.Div(truck_displays)
+            html.Div(truck_tables)
         ])
 
         return truck_displays
