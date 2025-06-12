@@ -41,14 +41,12 @@ def create_graph(distance_matrix):
     return G
 
 def plot_map(G, addresses_df, genome=None):
-    pos = {}
-    for i in range(len(addresses_df)):
-        lat = addresses_df.iloc[i]['latitude']
-        lon = addresses_df.iloc[i]['longitude']
-        pos[i] = (lon, lat)
+    pos = {
+        i: (addresses_df.iloc[i]['longitude'], addresses_df.iloc[i]['latitude'])
+        for i in range(len(addresses_df))
+    }
 
     edge_traces = []
-
     if genome is not None:
         colors = px.colors.qualitative.Plotly
         for i, truck in enumerate(genome.trucks):
@@ -62,40 +60,57 @@ def plot_map(G, addresses_df, genome=None):
                     route.append(pkg.address)
             route.append(0)
 
-            edge_x = []
-            edge_y = []
-            for j in range(len(route) - 1):
-                x0, y0 = pos[route[j]]
-                x1, y1 = pos[route[j + 1]]
-                edge_x.extend([x0, x1, None])
-                edge_y.extend([y0, y1, None])
-
-            edge_traces.append(go.Scatter(
-                x=edge_x,
-                y=edge_y,
-                line=dict(width=2, color=color),
-                hoverinfo='none',
+            edge_trace = go.Scattermapbox(
+                lon=[pos[pt][0] for pt in route],
+                lat=[pos[pt][1] for pt in route],
                 mode='lines',
+                line=dict(width=2, color=color),
                 name=f'Truck {i+1}'
-            ))
+            )
+            edge_traces.append(edge_trace)
     else:
-        # fallback default if no genome is provided
-        edge_x = []
-        edge_y = []
         for edge in G.edges():
             x0, y0 = pos[edge[0]]
             x1, y1 = pos[edge[1]]
-            edge_x.extend([x0, x1, None])
-            edge_y.extend([y0, y1, None])
+            edge_trace = go.Scattermapbox(
+                lon=[x0, x1],
+                lat=[y0, y1],
+                mode='lines',
+                line=dict(width=0.5, color='gray'),
+                name='Default Routes'
+            )
+            edge_traces.append(edge_trace)
 
-        edge_traces.append(go.Scatter(
-            x=edge_x,
-            y=edge_y,
-            line=dict(width=0.5, color='#888'),
-            hoverinfo='none',
-            mode='lines',
-            name='Default Routes'
-        ))
+    # Add node points
+    node_trace = go.Scattermapbox(
+        lon=[pos[i][0] for i in G.nodes()],
+        lat=[pos[i][1] for i in G.nodes()],
+        mode='markers+text',
+        marker=dict(size=10, color='red'),
+        text=[str(i) for i in G.nodes()],
+        hovertext=[
+            f"{addresses_df.iloc[i]['location']}<br>{addresses_df.iloc[i]['address']}"
+            for i in G.nodes()
+        ],
+        textposition="top center",
+        name='Locations'
+    )
+
+    fig = go.Figure(data=edge_traces + [node_trace])
+
+    fig.update_layout(
+        title='Salt Lake City Delivery Network Map',
+        autosize=True,
+        hovermode='closest',
+        mapbox=dict(
+            style='open-street-map',  # free and doesn't require token
+            center=dict(lat=40.6908, lon=-111.8910),
+            zoom=10
+        ),
+        margin=dict(t=30, b=10, l=10, r=10)
+    )
+
+    return fig
 
 
     #Nodes tracing lists
