@@ -230,9 +230,14 @@ app.layout = html.Div([
 
 
         html.Br(),
-        html.Button('Run Genetics', id='run-genetics', n_clicks=0),
+        html.Button('Run', id='run-genetics', n_clicks=0),
         dcc.Store(id='run-complete-flag', data=0),
-        html.Div(id='output-summary')
+        dcc.Loading(
+            id="loading-spinner",
+            type="circle",  # Options: "default", "circle", "dot", "cube"
+            fullscreen=False,
+            children=html.Div(id='output-summary')
+        )
     ], style={'padding':'20px', 'border':'1px solid black', 'margin':'10px'}),
 
     html.Div(className='row', children=[
@@ -398,7 +403,7 @@ def update_truck_loadout(solution_idx):
 
         return truck_displays
 
-    return "No solution selected."
+    return "Please hit Run to Generate new solution sets."
 
 
 @callback(
