@@ -141,7 +141,7 @@ class Genome:
         self.sort_genome()
 
     def __str__(self):
-        output = "Genome Truck Assignments:\n"
+        output = "Truck Route Assignments:\n"
         for i, truck in enumerate(self.trucks):
             output += f"Truck {i + 1}: {truck.packages}\n"
         return output
