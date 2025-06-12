@@ -514,6 +514,15 @@ def update_generation_graph(_):
 )
 def run_genetic_algorithm(n_clicks, clear_clicks, num_trucks, truck_capacity, truck_speed,
                           population_size, generations, crossover_rate, mutation_rate, package_quantity):
+        if package_quantity > num_trucks * truck_capacity:
+            return (
+                html.Div(
+                    f"Error: {package_quantity} packages exceeds total capacity of {num_trucks * truck_capacity} across {num_trucks} trucks."),
+                no_update,
+                no_update,
+                no_update,
+                False
+            )
         global last_env_hash, best_solutions_memory
         ctx = callback_context
         if not ctx.triggered:
