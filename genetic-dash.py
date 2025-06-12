@@ -7,12 +7,16 @@ from gen_utils import get_matrices, load_packages, load_distances
 import networkx as nx
 import pandas as pd
 from model.genetic_algorithm import genetic_algorithm
+import dash_bootstrap_components as dbc
+from dash_bootstrap_templates import load_figure_template
 
 #Import Data
 addresses = pd.read_csv('./data/addresses.csv')
 packages = load_packages()
 d_matrix = load_distances()
 port = int(os.environ.get('PORT', 8050))
+template = 'cyborg'
+load_figure_template(template)
 
 #store best solutions in memory
 global best_solutions_memory
@@ -21,7 +25,7 @@ best_solutions_memory = []
 
 # Incorporate modified Dash CSS Styleguide found at https://codepen.io/chriddyp/pen/bWLwgP
 stylesheets = ['./dashstyles.css']
-app = Dash(external_stylesheets=stylesheets)
+app = Dash(external_stylesheets=[dbc.themes.CYBORG])
 
 
 #creates a network graph from a distance matrix
@@ -118,7 +122,7 @@ def plot_map(G, addresses_df, genome=None):
             # satellite
             # stamen-terrain – topo
             # "stamen-toner" – B&W
-            style="satellite",
+            style="carto-darkmatter",
             center=dict(lat=40.6908, lon=-111.8910),
             zoom=10
         ),
@@ -202,7 +206,14 @@ def plot_map(G, addresses_df, genome=None):
 G = create_graph(d_matrix)
 
 app.layout = html.Div([
-    html.Div(className='row', children='Genetic-Dash',style={'textAlign':'center','fontSize':30}),
+    dbc.Container([
+        dbc.Row(
+            dbc.Col(
+                html.H1("Genetic-Dash", className="text-left mb-4"),
+                width=12
+            )
+        )
+    ]),
 
     html.Div([
         html.Label('No. of Trucks (1-50)'),
@@ -383,8 +394,8 @@ def update_truck_loadout(solution_idx):
                 ],
                 data=data_rows,
                 style_table={'overflowX': 'auto'},
-                style_cell={'padding': '5px', 'textAlign': 'left'},
-                style_header={'backgroundColor': '#f1f1f1', 'fontWeight': 'bold'},
+                style_cell={'padding': '5px', 'textAlign': 'left','background-color': '#1e1e1e','color':'#f8f9fa',},
+                style_header={'backgroundColor': '#1e1e1e', 'fontWeight': 'bold', 'color': '#ffffff'},
                 page_size=15
             )
 
