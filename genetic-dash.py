@@ -260,7 +260,9 @@ app.layout = html.Div([
         ]),
         html.Br(),
         dbc.Row([
-            dbc.Button('RUN!', id='run-genetics', n_clicks=0),
+            dbc.Button('RUN!', id='run-genetics', n_clicks=0, color='primary'),
+            dbc.Button( 'Clear Solution History', id='clear-solution-history', color='danger',className='mt-2'),
+            dbc.Label('Best solutions will be fed to the next run unless data is cleared or the environment is changed.', align='center', color='secondary'),
         ]),
         html.Br(),
         dcc.Store(id='run-complete-flag', data=0),
@@ -499,6 +501,7 @@ def update_generation_graph(_):
     Output('run-complete-flag', 'data'),
     Output('loading-flag', 'data'),
     Input('run-genetics', 'n_clicks'),
+    Input('clear-solution-history', 'n_clicks'),
     State('num-trucks', 'value'),
     State('truck-capacity', 'value'),
     State('truck-speed', 'value'),
@@ -507,19 +510,38 @@ def update_generation_graph(_):
     State('crossover-rate', 'value'),
     State('mutation-rate', 'value'),
     State('package-quantity', 'value'),
+
     prevent_initial_call=True
 )
-def run_genetic_algorithm(n_clicks, num_trucks, truck_capacity, truck_speed,
+def run_genetic_algorithm(n_clicks, clear_clicks, num_trucks, truck_capacity, truck_speed,
                           population_size, generations, crossover_rate, mutation_rate, package_quantity):
+        global last_env_hash, best_solutions_memory
+        ctx = callback_context
+        if not ctx.triggered:
+            return no_update, no_update, no_update, no_update, False
+
+        trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+        if trigger_id == 'clear-solution-history':
+            best_solutions_memory.clear()
+            last_env_hash = None
+            return html.Div("Best solutions cleared."),0,0,0,False
+
         if n_clicks == 0:
-            return "", 0, 0, 0, False
+            return no_update, no_update, no_update, False
+
+        current_hash = compute_environment_hash(num_trucks, truck_capacity,truck_speed,package_quantity)
+
+        if current_hash != last_env_hash:
+            best_solutions_memory.clear()
+            last_env_hash = current_hash
 
         # Run the algorithm
         packages = load_packages(package_quantity, d_matrix)
-        global best_solutions_memory
-        best_solutions_memory = []
         best_cost = None
         matrices = get_matrices(truck_speed)
+        previous_genomes =  [entry['genome'] for entry in best_solutions_memory] if best_solutions_memory else []
+
         _, best_cost = genetic_algorithm(
             truck_count=num_trucks,
             truck_capacity=truck_capacity,
@@ -530,7 +552,8 @@ def run_genetic_algorithm(n_clicks, num_trucks, truck_capacity, truck_speed,
             generations=generations,
             crossover_rate=crossover_rate,
             mutation_rate=mutation_rate,
-            best_solutions_out=best_solutions_memory
+            best_solutions_out=best_solutions_memory,
+            seed_genomes=previous_genomes
         )
 
         # Collect results
