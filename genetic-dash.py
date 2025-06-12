@@ -9,11 +9,14 @@ import pandas as pd
 from model.genetic_algorithm import genetic_algorithm
 import dash_bootstrap_components as dbc
 from dash_bootstrap_templates import load_figure_template
+import hashlib
 
 #Import Data
 addresses = pd.read_csv('./data/addresses.csv')
-
+stylesheets = ['./dashstyles.css']
 d_matrix = load_distances()
+#Importing styles from dash bootstrap templates
+app = Dash(__name__, external_stylesheets=[dbc.themes.CYBORG])
 port = int(os.environ.get('PORT', 8050))
 template = 'cyborg'
 load_figure_template(template)
@@ -21,11 +24,14 @@ load_figure_template(template)
 #store best solutions in memory
 global best_solutions_memory
 best_solutions_memory = []
+last_env_hash = None
+
+#Helper to detect environment changes
+def compute_environment_hash(num_trucks, truck_capacity, truck_speed, package_quantity):
+    hash_inputs = f'{num_trucks}-{truck_capacity}-{truck_speed}-{package_quantity}'
+    return hashlib.sha256(hash_inputs.encode()).hexdigest()
 
 
-# Incorporate modified Dash CSS Styleguide found at https://codepen.io/chriddyp/pen/bWLwgP
-stylesheets = ['./dashstyles.css']
-app = Dash(external_stylesheets=[dbc.themes.CYBORG])
 
 
 #creates a network graph from a distance matrix
@@ -245,11 +251,11 @@ app.layout = html.Div([
             ]),
             dbc.Col([
                 dbc.Label('Crossover Rate'),
-                dbc.Input(id='crossover-rate',type='number',min=0.0,max=1,step=0.05,value=0.8),
+                dbc.Input(id='crossover-rate',type='number',min=0.0,max=1,step=0.05,value=0.9),
             ]),
             dbc.Col([
                 dbc.Label('Mutation Rate'),
-                dbc.Input(id='mutation-rate',type='number',min=0.0,max=1,step=0.01,value=0.05),
+                dbc.Input(id='mutation-rate',type='number',min=0.0,max=1,step=0.01,value=0.02),
             ]),
         ]),
         html.Br(),
