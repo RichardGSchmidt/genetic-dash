@@ -1,6 +1,6 @@
 import datetime
 import os
-from dash import Dash, html, dash_table, dcc, callback, Output, Input, State
+from dash import Dash, html, dash_table, dcc, callback, Output, Input, State,callback_context,no_update
 import plotly.express as px
 import plotly.graph_objects as go
 from gen_utils import get_matrices, load_packages, load_distances
@@ -12,7 +12,7 @@ from dash_bootstrap_templates import load_figure_template
 
 #Import Data
 addresses = pd.read_csv('./data/addresses.csv')
-packages = load_packages()
+
 d_matrix = load_distances()
 port = int(os.environ.get('PORT', 8050))
 template = 'cyborg'
@@ -207,49 +207,68 @@ G = create_graph(d_matrix)
 
 app.layout = html.Div([
     dbc.Container([
-        dbc.Row(
-            dbc.Col(
-                html.H1("Genetic-Dash", className="text-left mb-4"),
-                width=12
+        dbc.Card([
+            dbc.CardHeader(
+                html.H3("Genetic-Dash", className="mb-0 text-white")
             )
-        )
-    ]),
+        ], className="mb-3", color="carbon", inverse=True)
+    ], fluid=True, style={"padding": "0"}),
 
-    html.Div([
-        html.Label('No. of Trucks (1-50)'),
-        dcc.Input(id='num-trucks',type='number',min=1,max=50,step=1,value=3),
+    dbc.Container([
+        dbc.Row([
+            dbc.Col([
+                dbc.Label('No. of Trucks (1-50)'),
+                dbc.Input(id='num-trucks',type='number',min=1,max=50,step=1,value=3),
+            ]),
+            dbc.Col([
+                dbc.Label("Truck Capacity"),
+                dbc.Input(id='truck-capacity',type='number',min=1,max=100,step=1,value=14),
+            ]),
+            dbc.Col([
+                dbc.Label("Truck Speed"),
+                dbc.Input(id='truck-speed',type='number',min=5.0,max=100.0,step=0.1,value=18.0),
+            ]),
+            dbc.Col([
+                dbc.Label("Package Quantity"),
+                dbc.Input(id='package-quantity',type='number',min=1,max=400,step=1,value=40),
+            ]),
+        ]),
 
-        html.Label("Truck Capacity"),
-        dcc.Input(id='truck-capacity',type='number',min=1,max=100,step=1,value=14),
-
-        html.Label("Truck Speed"),
-        dcc.Input(id='truck-speed',type='number',min=5.0,max=100.0,step=0.1,value=18.0),
-
+        dbc.Row([
+            dbc.Col([
+                dbc.Label('Population Size'),
+                dbc.Input(id='population-size',type='number',min=10,max=32000,step=10,value=500),
+            ]),
+            dbc.Col([
+                dbc.Label('Generations'),
+                dbc.Input(id='generations',type='number',min=1,max=50000,step=1,value=32),
+            ]),
+            dbc.Col([
+                dbc.Label('Crossover Rate'),
+                dbc.Input(id='crossover-rate',type='number',min=0.0,max=1,step=0.05,value=0.8),
+            ]),
+            dbc.Col([
+                dbc.Label('Mutation Rate'),
+                dbc.Input(id='mutation-rate',type='number',min=0.0,max=1,step=0.01,value=0.05),
+            ]),
+        ]),
         html.Br(),
-        html.Label('Population Size'),
-        dcc.Input(id='population-size',type='number',min=10,max=32000,step=10,value=100),
-
-        html.Label('Generations'),
-        dcc.Input(id='generations',type='number',min=1,max=50000,step=1,value=16),
-
-        html.Label('Crossover Rate'),
-        dcc.Input(id='crossover-rate',type='number',min=0.0,max=1,step=0.05,value=0.8),
-
-        html.Label('Mutation Rate'),
-        dcc.Input(id='mutation-rate',type='number',min=0.0,max=1,step=0.01,value=0.05),
-
-
-
+        dbc.Row([
+            dbc.Button('RUN!', id='run-genetics', n_clicks=0),
+        ]),
         html.Br(),
-        html.Button('Run', id='run-genetics', n_clicks=0),
         dcc.Store(id='run-complete-flag', data=0),
-        dcc.Loading(
-            id="loading-spinner",
-            type="circle",  # Options: "default", "circle", "dot", "cube"
+        dcc.Store(id='loading-flag', data=False),
+        dbc.Spinner(
+            html.Div(id='output-summary'),
+            color="primary",
+            type="border",
             fullscreen=False,
-            children=html.Div(id='output-summary')
-        )
-    ], style={'padding':'20px', 'border':'1px solid black', 'margin':'10px'}),
+            spinner_style={"width": "3rem", "height": "3rem"},
+            delay_show=300,
+            id="loading-spinner"
+        ),
+    ],fluid=True),
 
     html.Div(className='row', children=[
         html.Div([
@@ -264,27 +283,37 @@ app.layout = html.Div([
             })
         ], style={'width': '28%', 'display': 'inline-block', 'verticalAlign': 'top', 'marginLeft': '2%'})
     ]),
-    html.Div(className='row', children='View Best Solutions', style={'textAlign': 'center', 'fontSize': 20}),
     html.Br(),
-    dcc.Slider(
+    html.H6('.'),
+    html.Br(),
+    dbc.Label('Drag slider or click and use arrow keys to scroll through best solutions', style={'textAlign': 'center', 'fontSize': 20}),
+    dbc.Input(
         id='solution-slider',
+        type="range",
         min=0,
         max=0,  # We'll update this after GA run
         step=1,
         value=0,
-        tooltip={"placement": "bottom", "always_visible": True}
     ),
-
-    html.Div(className='row', children='Cost Per Best Solution', style={'textAlign':'center'}),
+    html.Br(),
+    dbc.Label('Cost Per Best Solution', style={'textAlign':'center'}),
     dcc.Graph(id='graph-content'),
     dcc.Graph(id='generation-track')
 ])
+
+@callback(
+    Output('run-genetics', 'disabled'),
+    Input('loading-flag','data')
+)
+def toggle_run_button(is_loading):
+    return is_loading
 
 @callback(
     Output('network-graph', 'figure'),
     Input('solution-slider', 'value')
 )
 def update_network_graph(solution_idx):
+    solution_idx = int(solution_idx)
     if 0 <= solution_idx < len(best_solutions_memory):
         genome = best_solutions_memory[solution_idx]['genome']
         return plot_map(G, addresses_df=addresses, genome=genome)
@@ -357,6 +386,7 @@ def update_graph(n_clicks):
     Input('solution-slider', 'value')
 )
 def update_truck_loadout(solution_idx):
+    solution_idx = int(solution_idx)
     if 0 <= solution_idx < len(best_solutions_memory):
         genome = best_solutions_memory[solution_idx]['genome']
         generation = best_solutions_memory[solution_idx]['generation']
@@ -389,18 +419,18 @@ def update_truck_loadout(solution_idx):
                     {"name": "Package", "id": "Package"},
                     {"name": "Location", "id": "Location"},
                     {"name": "Due", "id": "Due"},
-                    {"name": "Delivered", "id": "Delivered"},
+                    {"name": "Del", "id": "Delivered"},
                     {"name": "Late?", "id": "Late?"},
                 ],
                 data=data_rows,
                 style_table={'overflowX': 'auto'},
-                style_cell={'padding': '5px', 'textAlign': 'left','background-color': '#1e1e1e','color':'#f8f9fa',},
+                style_cell={'padding': '4px', 'textAlign': 'left','background-color': '#1e1e1e','color':'#f8f9fa','font-size':'10pt',},
                 style_header={'backgroundColor': '#1e1e1e', 'fontWeight': 'bold', 'color': '#ffffff'},
                 page_size=15
             )
 
             truck_tables.append(html.Div([
-                html.H4(f'Truck {i + 1} Mileage: {truck.mileage}'),
+                html.H5(f'Truck {i + 1} Mileage: {truck.mileage:.1f}'),
                 table,
                 html.Hr()
             ]))
@@ -461,6 +491,7 @@ def update_generation_graph(_):
     Output('solution-slider', 'max'),
     Output('solution-slider', 'value'),
     Output('run-complete-flag', 'data'),
+    Output('loading-flag', 'data'),
     Input('run-genetics', 'n_clicks'),
     State('num-trucks', 'value'),
     State('truck-capacity', 'value'),
@@ -469,50 +500,53 @@ def update_generation_graph(_):
     State('generations', 'value'),
     State('crossover-rate', 'value'),
     State('mutation-rate', 'value'),
+    State('package-quantity', 'value'),
     prevent_initial_call=True
 )
 def run_genetic_algorithm(n_clicks, num_trucks, truck_capacity, truck_speed,
-                          population_size, generations, crossover_rate, mutation_rate):
-    if n_clicks == 0:
-        return "", 0
+                          population_size, generations, crossover_rate, mutation_rate, package_quantity):
+        if n_clicks == 0:
+            return "", 0, 0, 0, False
 
-    # Run the algorithm
-    global best_solutions_memory
-    best_solutions_memory = []
-    best_cost = None
-    matrices = get_matrices(truck_speed)
-    _, best_cost = genetic_algorithm(
-        truck_count=num_trucks,
-        truck_capacity=truck_capacity,
-        truck_speed=truck_speed,
-        packages=packages,
-        matrices=matrices,
-        pop_size=population_size,
-        generations=generations,
-        crossover_rate=crossover_rate,
-        mutation_rate=mutation_rate,
-        best_solutions_out=best_solutions_memory
-    )
+        # Run the algorithm
+        packages = load_packages(package_quantity, d_matrix)
+        global best_solutions_memory
+        best_solutions_memory = []
+        best_cost = None
+        matrices = get_matrices(truck_speed)
+        _, best_cost = genetic_algorithm(
+            truck_count=num_trucks,
+            truck_capacity=truck_capacity,
+            truck_speed=truck_speed,
+            packages=packages,
+            matrices=matrices,
+            pop_size=population_size,
+            generations=generations,
+            crossover_rate=crossover_rate,
+            mutation_rate=mutation_rate,
+            best_solutions_out=best_solutions_memory
+        )
 
-    # Collect results
-    final_solution = best_solutions_memory[-1]['genome']
+        # Collect results
+        final_solution = best_solutions_memory[-1]['genome']
 
-    late_count = len(final_solution.late_packages)
-    mileage = sum(truck.mileage for truck in final_solution.trucks)
-    active_trucks = sum(1 for truck in final_solution.trucks if truck.packages)
+        late_count = len(final_solution.late_packages)
+        mileage = sum(truck.mileage for truck in final_solution.trucks)
+        active_trucks = sum(1 for truck in final_solution.trucks if truck.packages)
 
-    return(
-        html.Div([
-            html.P(f"Best Total Cost: {best_cost:.2f}"),
-            html.P(f"Late Packages: {late_count}"),
-            html.P(f"Total Mileage: {mileage:.2f}"),
-            html.P(f"Trucks Used: {active_trucks}")
-        ]),
-        max(0,len(best_solutions_memory)-1), # slider max
-        len(best_solutions_memory) - 1,
-        n_clicks #makes the charts update
+        return(
+            html.Div([
+                html.P(f"Best Total Cost: {best_cost:.2f}"),
+                html.P(f"Late Packages: {late_count}"),
+                html.P(f"Total Mileage: {mileage:.2f}"),
+                html.P(f"Trucks Used: {active_trucks}")
+            ]),
+            max(0,len(best_solutions_memory)-1), # slider max
+            len(best_solutions_memory) - 1,
+            n_clicks, #makes the charts update
+            False #turn off loading
+        )
 
-    )
 def format_time(t):
     if isinstance(t, datetime.timedelta):
         total_minutes = int(t.total_seconds() // 60)
