@@ -105,11 +105,20 @@ def plot_map(G, addresses_df, genome=None):
     fig = go.Figure(data=edge_traces + [node_trace])
 
     fig.update_layout(
-        title='Salt Lake City Delivery Network Map',
+        title="WGUPS Delivery Map",
         autosize=True,
-        hovermode='closest',
-        mapbox=dict(
-            style='open-street-map',  # free and doesn't require token
+        hovermode="closest",
+        map=dict(
+            # Other Options for styles include:
+            # carto-positron – light, minimal
+            # outdoors
+            # carto-voyager normal topo
+            # dark / light / streets - standards
+            # carto-darkmatter – dark
+            # satellite
+            # stamen-terrain – topo
+            # "stamen-toner" – B&W
+            style="satellite",
             center=dict(lat=40.6908, lon=-111.8910),
             zoom=10
         ),
