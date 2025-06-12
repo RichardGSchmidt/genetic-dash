@@ -8,10 +8,18 @@ random.seed("WGUPS")
 
 # Initial population with constraints
 # Constant time operation O(p) where p is population size (a constant)
-def create_initial_population(pop_size, base_genome):
+def create_initial_population(pop_size, base_genome,seed_genomes=None):
+    if seed_genomes is None:
+        seed_genomes = []
     population = []
+
+    for seed in seed_genomes:
+        population.append(seed.make_copy())
+        if len(population) >= pop_size:
+            return population[:pop_size]
+
     # Create the initial population
-    for i in range(pop_size):
+    while len(population) < pop_size:
         # Deep-copy trucks so each genome has its own independent route state
         genome = base_genome.make_copy()
         genome.fill_randomly()
@@ -185,7 +193,7 @@ def mutation(offspring, mutation_rate):
     return mutated
 
 # Genetic algorithm
-def genetic_algorithm(truck_count, truck_capacity, truck_speed, packages, matrices, pop_size=50, generations=100, crossover_rate=0.9, mutation_rate=0.2,best_solutions_out=None):
+def genetic_algorithm(truck_count, truck_capacity, truck_speed, packages, matrices, pop_size=50, generations=100, crossover_rate=0.9, mutation_rate=0.2,best_solutions_out=None,seed_genomes=None):
     # Create initial population
     if best_solutions_out is None:
         best_solutions_out = []
@@ -196,7 +204,7 @@ def genetic_algorithm(truck_count, truck_capacity, truck_speed, packages, matric
          trucks.append(Vehicle(truck_capacity, truck_speed, [], 0, 0))
     genome = Genome(trucks, packages)
 
-    population = create_initial_population(pop_size, genome)
+    population = create_initial_population(pop_size, genome,seed_genomes=seed_genomes)
     
     best_solutions = []
     best_distance = float('inf')
