@@ -327,6 +327,7 @@ def update_graph(n_clicks):
 def update_truck_loadout(solution_idx):
     if 0 <= solution_idx < len(best_solutions_memory):
         genome = best_solutions_memory[solution_idx]['genome']
+        generation = best_solutions_memory[solution_idx]['generation']
         truck_displays = []
         total_mileage = 0.0
         for i, truck in enumerate(genome.trucks):
@@ -353,8 +354,11 @@ def update_truck_loadout(solution_idx):
                 html.H5(f"Truck {i+1} (Mileage: {truck.mileage:.1f})",),
                 html.Ul([html.Li(line) for line in pkg_lines])
             ], style={'marginBottom': '20px'}))
+        #this arranges everything together for display
         truck_displays = html.Div([
-            html.H3(f"Total Mileage: {total_mileage:.1f}",),
+            html.H2(f'{total_mileage:.1f} miles'),
+            html.H3(f'Solution: {solution_idx + 1} Generation: {generation}'),
+            html.Pre(str(genome)),
             html.Div(truck_displays)
         ])
 
