@@ -223,7 +223,7 @@ app.layout = html.Div([
         dbc.Row([
             dbc.Col([
                 dbc.Label('No. of Trucks (1-50)'),
-                dbc.Input(id='num-trucks',type='number',min=1,max=50,step=1,value=3),
+                dbc.Input(id='num-trucks',type='number',min=1,max=5000,step=1,value=3),
             ]),
             dbc.Col([
                 dbc.Label("Truck Capacity"),
@@ -235,7 +235,7 @@ app.layout = html.Div([
             ]),
             dbc.Col([
                 dbc.Label("Package Quantity"),
-                dbc.Input(id='package-quantity',type='number',min=1,max=400,step=1,value=40),
+                dbc.Input(id='package-quantity',type='number',min=1,max=5000,step=1,value=40),
             ]),
         ]),
 
@@ -378,6 +378,16 @@ def update_graph(n_clicks):
         stackgroup='one'
     ))
 
+    # Add total cost as a black line
+    fig.add_trace(go.Scatter(
+        x=df['index'],
+        y=df['total_cost'],
+        mode='lines+markers',
+        name='Total Cost',
+        line=dict(color='black', width=2, dash='solid'),
+        marker=dict(size=4)
+    ))
+
     fig.update_layout(
         title='Stacked Line Chart of Total Cost per Best Solution',
         xaxis_title='Solution Index',
@@ -398,12 +408,14 @@ def update_truck_loadout(solution_idx):
         genome = best_solutions_memory[solution_idx]['genome']
         generation = best_solutions_memory[solution_idx]['generation']
         total_mileage = 0.0
-        data_rows = []
+
         truck_tables = []
         for i, truck in enumerate(genome.trucks):
             if not truck.packages:
                 continue
             total_mileage += truck.mileage
+            data_rows = []
+
             for pkg_id, delivered_time in truck.delivery_log:
                 pkg = genome.packages.get(pkg_id)
                 addr = addresses.iloc[pkg.address]['location']
@@ -441,10 +453,13 @@ def update_truck_loadout(solution_idx):
                 table,
                 html.Hr()
             ]))
-
+        active_trucks = sum (1 for t in genome.trucks if t.packages)
+        late_count = len(genome.late_packages)
+        total_cost = total_mileage + active_trucks * 20 + late_count * 20
         truck_displays = html.Div([
-            html.H2(f'{total_mileage:.1f} miles'),
-            html.H3(f'Solution: {solution_idx + 1} Generation: {generation}'),
+            html.H4(f'Total Cost: ${total_cost:.2f}'),
+            html.H6(f'{total_mileage:.1f} miles x $1, late packages: {late_count} x $20 + active trucks: {active_trucks} x $20'),
+            html.H6(f'Solution: {solution_idx + 1} Generation: {generation}'),
             html.Pre(str(genome)),
             html.Div(truck_tables)
         ])
@@ -484,8 +499,13 @@ def update_generation_graph(_):
         color_continuous_scale='Bluered'
     )
 
+    # Add custom hovertemplate to round to 2 decimal places
+    fig.update_traces(
+        hovertemplate='Generation %{x}<br>ΔCost: $%{y:.2f}<extra></extra>'
+    )
+
     fig.update_layout(
-        yaxis_title='Improvement (ΔCost)',
+        yaxis_title='Improvement (-ΔCost)',
         xaxis_title='Generation',
         hovermode='x unified'
     )

@@ -11,7 +11,7 @@ class Genome:
         self.packages = packages
         self.truck_count = len(trucks)
         #stuff for output
-        self.totalmiles = 0
+        self.total_miles = 0
         self.late_packages = []
         self.active_trucks = -1
 

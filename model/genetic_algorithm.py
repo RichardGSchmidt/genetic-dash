@@ -74,12 +74,12 @@ def evaluate_fitness(population, matrices):
                 truck.time += t_matrix[truck.address][0]
 
         active_trucks = 0
-        total_mileage = 0.0
+        genome.total_miles = 0
         for truck in genome.trucks:
             if len(truck.packages) > 0:
                 active_trucks += 1
-                total_mileage += truck.mileage
-        total_cost = total_mileage + len(genome.late_packages) * 20.0 + active_trucks * 20
+                genome.total_miles += truck.mileage
+        total_cost = genome.total_miles + len(genome.late_packages) * 20.0 + active_trucks * 20
 
         # Fitness is inversely proportional to total cost.
         fitness = 1.0 / (total_cost + 1)
@@ -169,7 +169,7 @@ def fill_remaining_packages(trucks, remaining_packages):
     for pkg in remaining_packages:
         valid_trucks = [i for i in range(len(trucks)) if truck_loads[i] < truck_caps[i]]
         if not valid_trucks:
-            raise ValueError("Not enough truck capacity to place all packages during crossover!")
+            raise ValueError("Not enough truck capacity to place all packages during crossover! Please add trucks or capacity to this query.")
         choice = random.choice(valid_trucks)
         trucks[choice].packages.append(pkg)
         truck_loads[choice] += 1
@@ -183,14 +183,40 @@ def mutation(offspring, mutation_rate):
         genome = g.make_copy()
 
         if random.random() < mutation_rate:
-            #Pick two random package ID's to swap
+            # This gets called only every once-and-a-while during mutation and is used to
+            # optimize for having too many trucks.
+            # Cascading consolidation: push packages up as far as possible to clear out the
+            # excess trucks.
+            if random.random() < 0.02:
+                for i in range(len(genome.trucks) - 1, 0, -1):
+                    lower = genome.trucks[i]
+                    upper = genome.trucks[i - 1]
+
+                    if len(lower.packages) > 0:
+                        space_remaining = upper.capacity - len(upper.packages)
+
+                        # If upper truck can absorb the entire lower truck
+                        if space_remaining >= len(lower.packages):
+                            upper.packages.extend(lower.packages)
+                            lower.packages.clear()
+                        else:
+                            # Try moving only as many as fit
+                            num_to_move = min(space_remaining, len(lower.packages))
+                            if num_to_move > 0:
+                                selected = random.sample(lower.packages, num_to_move)
+                                for pkg in selected:
+                                    lower.packages.remove(pkg)
+                                    upper.packages.append(pkg)
+
+            # Standard mutation: swap two packages
             pkg_ids = list(genome.package_list)
             if len(pkg_ids) >= 2:
-                pid1, pid2 = random.sample(pkg_ids,2)
-                genome.swap_packages(pid1,pid2)
+                pid1, pid2 = random.sample(pkg_ids, 2)
+                genome.swap_packages(pid1, pid2)
+        genome.sort_genome()
         mutated.append(genome)
-
     return mutated
+
 
 # Genetic algorithm
 def genetic_algorithm(truck_count, truck_capacity, truck_speed, packages, matrices, pop_size=50, generations=100, crossover_rate=0.9, mutation_rate=0.2,best_solutions_out=None,seed_genomes=None):
@@ -207,7 +233,7 @@ def genetic_algorithm(truck_count, truck_capacity, truck_speed, packages, matric
     population = create_initial_population(pop_size, genome,seed_genomes=seed_genomes)
     
     best_solutions = []
-    best_distance = float('inf')
+    best_cost = float('inf')
 
     # Evolution process
     for generation in range(generations):
@@ -216,9 +242,10 @@ def genetic_algorithm(truck_count, truck_capacity, truck_speed, packages, matric
         current_cost = current_best[2]
 
         # Only save if this is a new best solution
-        if current_cost < best_distance:
-            best_distance = current_cost
-            print(f"Generation {generation}: New best cost = {best_distance:.1f}.")
+        if current_cost < best_cost:
+            best_cost = current_cost
+            current_mileage = current_best[0].total_miles
+            print(f"Generation {generation}: New best cost = {best_cost:.1f}. mileage = {current_mileage:.2f}")
             print(current_best[0])
 
             best_solutions_out.append({
@@ -245,4 +272,4 @@ def genetic_algorithm(truck_count, truck_capacity, truck_speed, packages, matric
         elites = [e[0] for e in population_fitness[:elite_count]]
         population = elites + offspring[:(pop_size-elite_count)]
 
-    return best_solutions, best_distance
+    return best_solutions, best_cost
