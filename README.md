@@ -58,6 +58,10 @@ By default, truck settings are the business use case explored in the project but
 
 <b>Refilling from depot is current disabled so the generator will abort on launch if you attempt to assign more packages than your trucks have the capacity to meet.</b>
 
+The program scales up, although it will take much longer on more complicated problems.
+![scaled-up.png](screenshots/scaled-up.png)
+
+
 Note: Changing anything in the environmental inputs will clear the solution history.
 
 ### Generator Inputs
@@ -77,7 +81,7 @@ Mutation is when a solution has part of its own internal information swapped aro
 
 After completing a run the following visualizations / tools will become available for use:
 
->1. Interactive Map view with color coded truck routes. (shown above) with a slider bar for exploring the different best solutions discovered through each run. (shown below)
+>1. Interactive Map view with color coded truck routes. (shown above) with a slider bar for exploring the different best solutions discovered through each run.
 >3. Truck Loadout viewer. Used to validate data and display route information to the user. (shown above)
 >4. Stacked Cost Line Graph.  Useful for tracking the progression of cost reduction. (shown below)
 >5. Bar Chart showing the magnitude of cost improvement per generation.  Useful for analyzing for stagnation. (shown below)
