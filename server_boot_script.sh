@@ -12,17 +12,32 @@
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 #go to path if exists or exit, you need to manually put the correct directory.
-cd /home/$USER/genetic-dash || exit
+#!/bin/bash
 
-#pull from git hub
-git pull origin master
+APP_DIR="/home/$USER/genetic-dash"
+cd "$APP_DIR" || exit 1
 
-#build the dockerfile
-docker build -t genetic-dash .
+echo "📥 Checking for updates..."
 
-#stop and remove the existing container
-docker stop genetic-dash-container
-docker rm genetic-dash-container
+# Fetch latest remote changes
+git fetch origin master
 
-# Run the updated container
-docker run -d --name genetic-dash-container -p 8050:8050 genetic-dash
+# Check if there are new commits
+LOCAL_HASH=$(git rev-parse HEAD)
+REMOTE_HASH=$(git rev-parse origin/master)
+
+if [ "$LOCAL_HASH" != "$REMOTE_HASH" ]; then
+    echo "🔄 Changes detected, pulling and rebuilding..."
+
+    git pull origin master || exit 1
+    docker build -t genetic-dash . || exit 1
+
+    docker stop genetic-dash-container 2>/dev/null
+    docker rm genetic-dash-container 2>/dev/null
+
+    docker run -d --name genetic-dash-container -p 8050:8050 genetic-dash || exit 1
+
+    echo "✅ Updated successfully!"
+else
+    echo "✅ No changes — skipping rebuild."
+fi
