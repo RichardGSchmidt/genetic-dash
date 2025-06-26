@@ -1,89 +1,137 @@
-# Genetic Algorithm Dashboard
+# 🧬 Genetic Dash – Delivery Route Optimization with a Genetic Algorithm
 
-A Dash-based visualization dashboard for genetic algorithm results, showing cost breakdown and generation tracking.
+[![Live Demo](https://img.shields.io/badge/Live-Demo-brightgreen)](https://genetic-dash.com)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Built with Python](https://img.shields.io/badge/Python-3.10+-blue.svg)]()
+[![Dash Framework](https://img.shields.io/badge/Framework-Plotly%20Dash-lightgrey)]()
 
 ![demo.png](screenshots/demo.png)
 
-## Requirements
-The application expects:
-- `Python 3.11.0+` - Required for libraries like plotly
-- `./data/addresses.csv` - Contains Address metadata.
-- `./data/distances.csv` - Distance matrix for routing calculations
-- `./data/packages.csv` - Dummy package data for the first 40 packages, additional packages are generated on demand.
-- `internet connection to MapLibre` - for Plotly to pull mapping data from MapLibre and open source GIS
-## Features
-- Uses a Genetic Algorithm to solve Route optimization
-- Interactive Map Visualizations using MapLibre for open source mapping information
-- Stacked line chart showing cost breakdown (late packages, mileage, trucks)
-- Generation timeline bar chart showing improvement over generations
 
-## Installation
+---
 
-1. Clone this repository (or download the zip, extract, and navigate to it in terminal):
+## 📍 Overview
+
+Genetic Dash is a web-based interactive dashboard that visualizes the evolution of optimized delivery routes using a genetic algorithm.
+
+- 📦 Real-time package delivery routing simulation
+- 🧬 Genetic algorithm with crossover, mutation, and elite preservation
+- 🌐 Fully interactive map and control panel built with Dash (Plotly)
+- 🖥️ Hosted at [genetic-dash.com](https://genetic-dash.com)
+
+---
+
+## 🔧 Features
+
+- Dynamic routing with time, deadlines, and delivery constraints
+- Live visualization of each generation’s performance
+- Custom package editor and random scenario generation
+- Truck-level stats, mileage, and deadline analytics
+- GA tuning (population size, mutation rate, etc.)
+
+---
+
+## 🛠 Tech Stack
+
+| Component        | Technology       |
+|------------------|------------------|
+| Frontend         | Dash (Plotly), Bootstrap components |
+| Backend          | Python 3.10, Flask |
+| Optimization     | Custom Genetic Algorithm |
+| Hosting          | **Raspberry Pi 4** + Docker + Cloudflared Tunnel |
+| Deployment       | Live @ [genetic-dash.com](https://genetic-dash.com) |
+
+> ⚙️ Running on a Raspberry Pi demonstrates efficient resource use and practical deployment skills on low-power hardware.
+
+---
+
+## 🚀 Getting Started
+
 ```bash
-git clone https://github.com/RichardGSchmidt/genetic-dash.git
+git clone https://github.com/YourUser/genetic-dash.git
 cd genetic-dash
-```
-
-2. Create a virtual environment (recommended):
-```bash
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. Install dependencies:
-```bash
 pip install -r requirements.txt
+python genetic-dash.py
 ```
 
-# Usage
+Or via Docker:
 
-Run the dashboard:
 ```bash
-python3 genetic-dash.py
+docker build -t genetic-dash .
+docker run -p 8050:8050 genetic-dash
 ```
 
-The dashboard will be available at `http://127.0.0.1:8050/`
+---
 
-## Inputs
-Click Run to generate optimized delivery solutions.  Use the inputs, sliders, and graphs to explore the problem and solutions.
+## 🧠 Genetic Algorithm Highlights
 
+- Genome encodes truck-package assignments
+- Fitness function balances deadline adherence and mileage
+- Cascade mutations intelligently shuffle truck loads
+- Uses elitism and diversity-preserving strategies
 
-### Environmental Inputs
+---
 
-Truck settings include: <b>No. of Trucks</b>, <b>Truck Capacity</b>, and <b>Truck Speed</b>.
-By default, truck settings are the business use case explored in the project but can be changed to play around with the algorithm.
+## 📸 Screenshot
 
-<b>Package Quantity</b> is a selectable number that will pull packages from the csv for packages 1-40 and will randomly generate any remaining packages requested.
-
-<b>Refilling from depot is current disabled so the generator will abort on launch if you attempt to assign more packages than your trucks have the capacity to meet.</b>
-
-The program scales up, although it will take much longer on more complicated problems.
 ![scaled-up.png](screenshots/scaled-up.png)
+Running at enterprise scale on a raspberry pi.
+---
+
+## 📌 Why It Matters
+
+This project demonstrates:
+- Real-world AI in logistics
+- Proficiency in Dash, Python, and optimization algorithms
+- Full-stack skills including deployment and live hosting
+- Raspberry Pi-based hosting as a demonstration of lean deployment
+- Effective visualization of complex backend processes
+
+---
+
+## 👤 About the Author
+
+Created by **Richard Schmidt**, U.S. Veteran and WGU Computer Science graduate, pursuing an M.S. in AI/ML.
+
+Focused on practical AI for logistics, simulation, and optimization.
+
+🔗 [LinkedIn](https://www.linkedin.com/in/your-profile) | [GitHub](https://github.com/RichardGSchmidt)
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🕹️ Usage Guide
+
+Once the app is running (either locally or at [genetic-dash.com](https://genetic-dash.com)):
+
+- 🧪 **Generate or Edit Packages**:  
+  Use the controls in the top-right to add/edit delivery packages, or randomly generate them with control over time windows and deadlines.
+
+- ⚙️ **Adjust Algorithm Parameters**:  
+  Use sliders and input fields to change:
+  - Population size
+  - Number of generations
+  - Mutation rate
+  - Truck count and capacity
+
+- 🚚 **Run the Algorithm**:  
+  Click “Run” to visualize delivery routes optimized across generations.
+
+- 🗺️ **Interpret the Map**:  
+  Each truck’s route is shown with waypoints and delivery locations. Hover for details.
+
+- 📊 **Analyze Results**:  
+  Below the map:
+  - Tables display truck mileage, deliveries, and deadlines met/missed.
+  - Generation-by-generation cost comparisons show GA progress.
+
+- 🔄 **Reset or Modify**:  
+  Use the “Clear” or “Regenerate” buttons to start over or load a new scenario.
 
 
-Note: Changing anything in the environmental inputs will clear the solution history.
 
-### Generator Inputs
-The settings <b>Population Size</b> and <b>Generations</b> will increase odds of finding better solutions, at the cost of time.  
-<b>Use caution when setting these</b>, as the settings are open enough that you can cause very long run times if you set both values high.  
-If it's running on a free cloud asset or a raspberri pi, try to stay under 1000 population and 16 generations to avoid very long run times.
-
-The best results from the previous run will be passed to the next run for the initial population until the user changes inputs or hits clear.
-This means you can keep solution progress between runs as long as you don't change any variables that would invalidate the old solutions (you can change GA parameters, but not the trucks / packages).
-So far the best solution I have found with the default data set is 68.4 miles in the current version by running the program for a very long time.
-
-<b>Crossover</b> and <b>Mutation</b> are both bound between 1 and 0 and represent the probability that either will occur.  The sweet spots for these seem to be in the 0.8-0.9 range for cross over and around 0.05-0.01 for mutation.
-Crossover is when two solutions "breed" with each other and produce offspring.
-Mutation is when a solution has part of its own internal information swapped around randomly.
-
-## Visualizations
-
-After completing a run the following visualizations / tools will become available for use:
-
->1. Interactive Map view with color coded truck routes. (shown above) with a slider bar for exploring the different best solutions discovered through each run.
->3. Truck Loadout viewer. Used to validate data and display route information to the user. (shown above)
->4. Stacked Cost Line Graph.  Useful for tracking the progression of cost reduction. (shown below)
->5. Bar Chart showing the magnitude of cost improvement per generation.  Useful for analyzing for stagnation. (shown below)
-
-![graph_demos.png](screenshots/graph_demos.png)
