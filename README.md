@@ -95,7 +95,7 @@ Created by **Richard Schmidt**, U.S. Veteran and WGU Computer Science graduate, 
 
 Focused on practical AI for logistics, simulation, and optimization.
 
-🔗 [LinkedIn](https://www.linkedin.com/in/your-profile) | [GitHub](https://github.com/RichardGSchmidt)
+🔗 [LinkedIn](https://www.linkedin.com/in/richard-schmidt-328860138/) | [GitHub](https://github.com/RichardGSchmidt)
 
 ---
 
