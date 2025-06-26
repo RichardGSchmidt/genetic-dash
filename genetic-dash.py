@@ -242,11 +242,11 @@ app.layout = html.Div([
         dbc.Row([
             dbc.Col([
                 dbc.Label('Population Size'),
-                dbc.Input(id='population-size',type='number',min=10,max=32000,step=10,value=300),
+                dbc.Input(id='population-size',type='number',min=10,max=32000,step=10,value=150),
             ]),
             dbc.Col([
                 dbc.Label('Generations'),
-                dbc.Input(id='generations',type='number',min=1,max=50000,step=1,value=16),
+                dbc.Input(id='generations',type='number',min=1,max=50000,step=1,value=8),
             ]),
             dbc.Col([
                 dbc.Label('Crossover Rate'),
