@@ -4,6 +4,8 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Built with Python](https://img.shields.io/badge/Python-3.10+-blue.svg)]()
 [![Dash Framework](https://img.shields.io/badge/Framework-Plotly%20Dash-lightgrey)]()
+[![CI](https://github.com/RichardGSchmidt/genetic-dash/actions/workflows/ci.yml/badge.svg)](https://github.com/RichardGSchmidt/genetic-dash/actions)
+
 
 ![demo.png](screenshots/demo.png)
 
